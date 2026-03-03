@@ -45,6 +45,23 @@ python main.py --visualize
 
 ---
 
+### [devops](./devops/)
+Evidence-driven DevOps specialist for server operations, troubleshooting, and deployment.
+
+**Features:**
+- **Evidence-Driven**: Multi-layer diagnostics (Network -> System -> Service -> App)
+- **Blindspot Awareness**: Explicit protocols for cloud console, ICP filing, and DNS issues
+- **Safety First**: 4-level operation safety framework with confirmation gates
+- **Multi-Cloud Ready**: Patterns for Alibaba, Tencent, and Huawei Cloud
+
+**Usage:**
+```bash
+# Register the skill
+# Copy 'devops' folder to your .claude/skills/ directory
+```
+
+---
+
 ## 🚀 Installation
 
 To use these skills in your tool (Claude Code / Cursor / Codex):
