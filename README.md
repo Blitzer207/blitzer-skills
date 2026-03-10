@@ -62,6 +62,29 @@ Evidence-driven DevOps specialist for server operations, troubleshooting, and de
 
 ---
 
+### [atlassian-cli](./atlassian-cli/)
+Atlassian 命令行工具集，覆盖 Jira、Confluence、Bitbucket 日常操作。
+
+**Features:**
+- `jira` CLI — Issues、Epics、Sprints 管理
+- `confluence` CLI — Pages、Comments、Attachments 管理
+- `bkt` CLI — Repos、PRs、Branches、Pipelines 管理
+- 支持 Atlassian Cloud 和 Data Center
+
+**Usage:**
+```bash
+# Jira — 查询我的 issues
+jira issue list -a$(jira me)
+
+# Confluence — 发布 Markdown 到页面
+confluence create --space DEV --title "My Page" --file page.md
+
+# Bitbucket — 创建 PR
+bkt pr create --title "feat: add cache" --source feature/cache --target main
+```
+
+---
+
 ## 🚀 Installation
 
 To use these skills in your tool (Claude Code / Cursor / Codex):
