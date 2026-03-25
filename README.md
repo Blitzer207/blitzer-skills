@@ -85,6 +85,20 @@ bkt pr create --title "feat: add cache" --source feature/cache --target main
 
 ---
 
+### [ecutest-code](./ecutest-code/)
+用 `ecutest_code` 库编写 ecu.test Python 自动化测试。
+
+**Features:**
+- `ToolAccess` 三态状态机生命周期管理
+- 变量注册（model_var、meas_var、bus_signal）、job/diag 调用、recording
+- pytest fixture 模板（函数式 / 类式）
+- test.guide 上传插件集成
+- LSP 驱动的 API 验证工作流
+
+**Requirements:** Python 3.12+，ecu.test 2026.1+
+
+---
+
 ## 🚀 Installation
 
 To use these skills in your tool (Claude Code / Cursor / Codex):
