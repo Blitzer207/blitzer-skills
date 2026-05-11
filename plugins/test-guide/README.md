@@ -1,11 +1,12 @@
 # test.guide Plugin
 
-This plugin packages two test.guide skills as separate, routeable skills with bundled local references.
+This plugin packages test.guide skills as separate, routeable skills with bundled local references.
 
 ## Included Skills
 
 - `testguide-rest-api-skill`
 - `testguide-flowkit-skill`
+- `testguide-user-doc-skill`
 
 ## Codex
 

@@ -54,11 +54,12 @@ Includes:
 
 ### [test-guide](./plugins/test-guide/)
 
-Plugin bundle for test.guide REST API automation and flow.kit workflow development.
+Plugin bundle for test.guide user documentation, REST API automation, and flow.kit workflow development.
 
 Includes:
 - `testguide-rest-api-skill`
 - `testguide-flowkit-skill`
+- `testguide-user-doc-skill`
 
 ## Standalone Skills
 

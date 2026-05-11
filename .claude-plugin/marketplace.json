@@ -34,7 +34,7 @@
     {
       "name": "test-guide",
       "source": "./plugins/test-guide",
-      "description": "test.guide REST API and flow.kit workflow skills with bundled local references.",
+      "description": "test.guide user documentation, REST API, and flow.kit workflow skills with bundled local references.",
       "version": "0.1.0",
       "author": {
         "name": "Blitzer Skills Maintainers"

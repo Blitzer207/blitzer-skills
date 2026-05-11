@@ -1,7 +1,7 @@
 {
   "name": "test-guide",
   "version": "0.1.0",
-  "description": "test.guide skills with bundled REST OpenAPI specs and flow.kit workflow authoring references.",
+  "description": "test.guide skills with bundled user documentation, REST OpenAPI specs, and flow.kit workflow authoring references.",
   "author": {
     "name": "Blitzer Skills Maintainers"
   },
