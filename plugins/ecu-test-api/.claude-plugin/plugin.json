@@ -1,0 +1,19 @@
+{
+  "name": "ecu-test-api",
+  "version": "0.1.0",
+  "description": "ecu.test API skills with bundled 2024.3 and 2026.1 references for COM, REST, Object, Tools, Report, internal APIs, generators, trace analysis, test management, data structures, and user utilities.",
+  "author": {
+    "name": "leili"
+  },
+  "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/ecu-test-api",
+  "repository": "https://github.com/Blitzer207/blitzer-skills",
+  "license": "UNLICENSED",
+  "keywords": [
+    "ecu.test",
+    "api",
+    "claude-code",
+    "codex",
+    "test-automation"
+  ],
+  "skills": "./skills/"
+}

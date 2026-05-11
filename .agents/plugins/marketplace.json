@@ -1,0 +1,20 @@
+{
+  "name": "blitzer-skills",
+  "interface": {
+    "displayName": "Blitzer Skills"
+  },
+  "plugins": [
+    {
+      "name": "ecu-test-api",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ecu-test-api"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

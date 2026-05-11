@@ -2,7 +2,55 @@
 
 A curated collection of Claude Code skills and AI agent capabilities.
 
+## Plugin Marketplaces
+
+This repository now exposes plugin marketplace metadata for both Codex and Claude Code.
+
+### Claude Code
+
+After the changes are pushed to GitHub:
+
+```text
+/plugin marketplace add Blitzer207/blitzer-skills
+/plugin install ecu-test-api@blitzer-skills
+/reload-plugins
+```
+
+For local testing from this checkout:
+
+```text
+/plugin marketplace add C:\Users\leili\Desktop\Bitbucket-Repos\13-github-projects\07-blitzer-skills
+/plugin install ecu-test-api@blitzer-skills
+/reload-plugins
+```
+
+Claude Code marketplace file: `.claude-plugin/marketplace.json`
+
+### Codex
+
+Codex marketplace file: `.agents/plugins/marketplace.json`
+
+The `ecu-test-api` plugin is available at `plugins/ecu-test-api` and includes its Codex manifest at `plugins/ecu-test-api/.codex-plugin/plugin.json`.
+
 ## 📚 Available Skills
+
+### [ecu-test-api plugin](./plugins/ecu-test-api/)
+Plugin bundle for ecu.test API agent skills with bundled 2024.3 and 2026.1 references.
+
+**Includes:**
+- COM API
+- Object API
+- Internal API
+- REST API
+- Generator API
+- Trace Analysis API
+- Report API
+- Tools API
+- Test Management API
+- User Utility API
+- Data structures
+
+---
 
 ### [ecutest-api-skill](./ecutest-api-skill/)
 Local ecu.test 2024.3 documentation knowledge base with Codex skill, references, and helper scripts.
