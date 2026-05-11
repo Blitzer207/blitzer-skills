@@ -1,10 +1,10 @@
 # blitzer-skills
 
-A curated collection of Claude Code skills and AI agent capabilities.
+A curated collection of Claude Code and Codex plugins, skills, and AI agent capabilities.
 
 ## Plugin Marketplaces
 
-This repository now exposes plugin marketplace metadata for both Codex and Claude Code.
+This repository exposes plugin marketplace metadata for both Codex and Claude Code.
 
 ### Claude Code
 
@@ -13,6 +13,7 @@ After the changes are pushed to GitHub:
 ```text
 /plugin marketplace add Blitzer207/blitzer-skills
 /plugin install ecu-test-api@blitzer-skills
+/plugin install test-guide@blitzer-skills
 /reload-plugins
 ```
 
@@ -21,6 +22,7 @@ For local testing from this checkout:
 ```text
 /plugin marketplace add C:\Users\leili\Desktop\Bitbucket-Repos\13-github-projects\07-blitzer-skills
 /plugin install ecu-test-api@blitzer-skills
+/plugin install test-guide@blitzer-skills
 /reload-plugins
 ```
 
@@ -30,134 +32,66 @@ Claude Code marketplace file: `.claude-plugin/marketplace.json`
 
 Codex marketplace file: `.agents/plugins/marketplace.json`
 
-The `ecu-test-api` plugin is available at `plugins/ecu-test-api` and includes its Codex manifest at `plugins/ecu-test-api/.codex-plugin/plugin.json`.
+## Plugins
 
-## 📚 Available Skills
+### [ecu-test-api](./plugins/ecu-test-api/)
 
-### [ecu-test-api plugin](./plugins/ecu-test-api/)
-Plugin bundle for ecu.test API agent skills with bundled 2024.3 and 2026.1 references.
+Plugin bundle for ecu.test API and automation skills with bundled references.
 
-**Includes:**
-- COM API
-- Object API
-- Internal API
-- REST API
-- Generator API
-- Trace Analysis API
-- Report API
-- Tools API
-- Test Management API
-- User Utility API
-- Data structures
+Includes:
+- `ecu-test-com-api`
+- `ecu-test-data-structures`
+- `ecu-test-generator-api`
+- `ecu-test-internal-api`
+- `ecu-test-object-api`
+- `ecu-test-report-api`
+- `ecu-test-rest-api`
+- `ecu-test-test-management-api`
+- `ecu-test-tools-api`
+- `ecu-test-trace-analysis-api`
+- `ecu-test-user-utility-api`
+- `ecutest-code`
 
----
+### [test-guide](./plugins/test-guide/)
 
-### [ecutest-api-skill](./ecutest-api-skill/)
-Local ecu.test 2024.3 documentation knowledge base with Codex skill, references, and helper scripts.
+Plugin bundle for test.guide REST API automation and flow.kit workflow development.
 
-**Features:**
-- Multi-version support (2024.3+ including 2025.x)
-- API and function lookup for ecu.test
-- Search and scan utilities
+Includes:
+- `testguide-rest-api-skill`
+- `testguide-flowkit-skill`
 
-**Usage:**
-```bash
-# Search API
-python scripts/search_api.py --version 2025.4 --query AnalysisJobApi
-
-# Scan documentation
-python scripts/scan_docs.py --version 2025.4 tree --depth 2
-```
-
----
-
-### [testguide-flowkit-skill](./testguide-flowkit-skill/)
-Create, debug, and optimize flow.kit-based `test.guide` workflows.
-
-**Features:**
-- Flow definition building with `FlowBuilder` and `add_block_with`
-- Local validation and execution
-- Flow visualization (experimental)
-
-**Development Loop:**
-```bash
-# Validate
-python main.py --validate
-
-# Execute
-python main.py --execute
-
-# Visualize
-python main.py --visualize
-```
-
----
+## Standalone Skills
 
 ### [devops](./devops/)
+
 Evidence-driven DevOps specialist for server operations, troubleshooting, and deployment.
 
-**Features:**
-- **Evidence-Driven**: Multi-layer diagnostics (Network -> System -> Service -> App)
-- **Blindspot Awareness**: Explicit protocols for cloud console, ICP filing, and DNS issues
-- **Safety First**: 4-level operation safety framework with confirmation gates
-- **Multi-Cloud Ready**: Patterns for Alibaba, Tencent, and Huawei Cloud
-
-**Usage:**
-```bash
-# Register the skill
-# Copy 'devops' folder to your .claude/skills/ directory
-```
-
----
+Features:
+- Evidence-driven diagnostics across network, system, service, and app layers
+- Blindspot protocols for cloud console, ICP filing, and DNS issues
+- Safety-first operation guidance
+- Multi-cloud operation patterns
 
 ### [atlassian-cli](./atlassian-cli/)
-Atlassian 命令行工具集，覆盖 Jira、Confluence、Bitbucket 日常操作。
 
-**Features:**
-- `jira` CLI — Issues、Epics、Sprints 管理
-- `confluence` CLI — Pages、Comments、Attachments 管理
-- `bkt` CLI — Repos、PRs、Branches、Pipelines 管理
-- 支持 Atlassian Cloud 和 Data Center
+Atlassian CLI guidance for Jira, Confluence, and Bitbucket daily operations.
 
-**Usage:**
-```bash
-# Jira — 查询我的 issues
-jira issue list -a$(jira me)
+Features:
+- `jira` CLI issue, epic, and sprint workflows
+- `confluence` CLI page, comment, and attachment workflows
+- `bkt` CLI repository, pull request, branch, and pipeline workflows
+- Atlassian Cloud and Data Center support
 
-# Confluence — 发布 Markdown 到页面
-confluence create --space DEV --title "My Page" --file page.md
+## Installation
 
-# Bitbucket — 创建 PR
-bkt pr create --title "feat: add cache" --source feature/cache --target main
-```
+Use plugins when possible. They are self-contained under `plugins/` and include their own skill references.
 
----
+For standalone skills, copy the desired skill folder into your tool's skills directory.
 
-### [ecutest-code](./ecutest-code/)
-用 `ecutest_code` 库编写 ecu.test Python 自动化测试。
+## Contributing
 
-**Features:**
-- `ToolAccess` 三态状态机生命周期管理
-- 变量注册（model_var、meas_var、bus_signal）、job/diag 调用、recording
-- pytest fixture 模板（函数式 / 类式）
-- test.guide 上传插件集成
-- LSP 驱动的 API 验证工作流
+Feel free to submit issues and pull requests to improve these plugins and skills.
 
-**Requirements:** Python 3.12+，ecu.test 2026.1+
+## License
 
----
-
-## 🚀 Installation
-
-To use these skills in your tool (Claude Code / Cursor / Codex):
-
-1. Copy the desired skill folder into your skills directory
-2. Or install the packaged `.skill` file (if available)
-
-## 📝 Contributing
-
-Feel free to submit issues and pull requests to improve these skills.
-
-## 📄 License
-
-See individual skill directories for license information.
+See individual plugin and skill directories for license information.

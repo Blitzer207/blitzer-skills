@@ -30,6 +30,32 @@
         "test-automation"
       ],
       "skills": "./skills/"
+    },
+    {
+      "name": "test-guide",
+      "source": "./plugins/test-guide",
+      "description": "test.guide REST API and flow.kit workflow skills with bundled local references.",
+      "version": "0.1.0",
+      "author": {
+        "name": "leili"
+      },
+      "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/test-guide",
+      "repository": "https://github.com/Blitzer207/blitzer-skills",
+      "license": "UNLICENSED",
+      "keywords": [
+        "test.guide",
+        "rest-api",
+        "flow.kit",
+        "test-automation"
+      ],
+      "category": "Developer Tools",
+      "tags": [
+        "test.guide",
+        "rest-api",
+        "flow.kit",
+        "test-automation"
+      ],
+      "skills": "./skills/"
     }
   ]
 }

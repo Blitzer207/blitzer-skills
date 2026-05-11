@@ -1,0 +1,826 @@
+openapi: 3.0.2
+info:
+  title: test.guide SCM API
+  description: API for accessing SCM functionality of test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 3.5.0
+servers:
+  - url: /api/v3/scm
+    description: this test.guide server
+  - url: /{context-path}/api/v3/scm
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/v3/scm'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+  /configurations:
+    post:
+      tags:
+        - scm
+      summary: Create new SCM configuration.
+      operationId: create-scm-configurations
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Description of the SCM configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScmConfiguration'
+      responses:
+        '201':
+          description: SCM configuration was successfully stored. Returns the id of the newly created configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ScmConfigurationId'
+        '409':
+          description: SCM configuration with a given name already exists.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      tags:
+        - scm
+      summary: Get all SCM configurations of a project.
+      operationId: get-scm-configurations
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/scmConfigurationLabel'
+      responses:
+        '200':
+          description: List of all SCM configurations in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScmConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /configurations/{scmConfigurationId}:
+    get:
+      tags:
+        - scm
+      summary: Get SCM configuration with a given id.
+      operationId: get-scm-configuration-with-id
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/scmConfigurationId'
+      responses:
+        '200':
+          description: SCM configuration with the given id.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScmConfiguration'
+        '404':
+          description: The SCM configuration with the given id is not found.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      tags:
+        - scm
+      summary: Updates an existing SCM configuration.
+      operationId: update-scm-configuration-with-id
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/scmConfigurationId'
+      requestBody:
+        description: Description of the SCM configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScmConfiguration'
+      responses:
+        '204':
+          description: Successfully updated the SCM configuration.
+        '400':
+          description: The provided property of the SCM configuration cannot be updated.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: The SCM configuration is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: SCM configuration with such a label already exists.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - scm
+      summary: Delete SCM configuration with a given ID.
+      operationId: delete-scm-configuration-with-id
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/scmConfigurationId'
+      responses:
+        '204':
+          description: The SCM configuration was successfully deleted.
+        '400':
+          description: The SCM configuration cannot be deleted.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: The SCM configuration ID is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /index/task:
+    post:
+      tags:
+        - index
+      summary: |
+        Start the indexing of a commit. 
+        
+        This action currently only supports Git repositories.
+      operationId: start-indexing
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The SCM configuration and the commit to index.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartIndexingRequest'
+      responses:
+        '202':
+          description: The indexing of the commit started.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartIndexingResponse'
+        '404':
+          description: The SCM configuration or the provided commit reference does not exist.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: |
+            There are too many requests to index Git commits. Currently only one Git commit can be indexed at a time.
+                    content:
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /index/task/{taskId}:
+    get:
+      tags:
+        - index
+      summary: |
+        Fetches the progress of an indexing process.
+      operationId: get-task-state
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Information about the task.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IndexingTaskInfo'
+        '404':
+          description: No indexing task with this ID exists.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /index/tree/{scmConfigurationId}/{commitHash}:
+    get:
+      tags:
+        - index
+      summary: |
+        Fetches the indexed files
+      operationId: get-commit-index
+      parameters:
+        - $ref: '#/components/parameters/scmConfigurationId'
+        - $ref: '#/components/parameters/commitHash'
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/cursor'
+      responses:
+        '200':
+          description: The files of this index
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommitIndex'
+          headers:
+            link:
+              description: |
+                Contains a link to the next page of results. 
+                This link is missing authentication information, that needs to be added again.
+        '404':
+          description: |
+            The SCM configuration or the commit reference does not exist or the specified commit is not indexed yet.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - index
+      summary: |
+        Deletes the index of a certain commit.
+      operationId: delete-commit-index
+      parameters:
+        - $ref: '#/components/parameters/scmConfigurationId'
+        - $ref: '#/components/parameters/commitHash'
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '204':
+          description: The index of the commit was deleted successfully
+        '404':
+          description: |
+            The SCM configuration or the commit reference does not exist or the specified commit was not indexed yet.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+components:
+  parameters:
+    projectId:
+      in: query
+      name: projectId
+      required: true
+      schema:
+        type: integer
+        default: 1
+      description: ID of the test.guide project the data is requested in
+
+    scmConfigurationLabel:
+      in: query
+      name: scmConfigurationLabel
+      schema:
+        type: string
+        description: Name of the SCM configuration
+      description: Name of the SCM configuration
+
+    scmConfigurationId:
+      in: path
+      name: scmConfigurationId
+      required: true
+      schema:
+        type: integer
+        format: int64
+        default: 1
+      description: ID of the requested SCM configuration
+
+    taskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+        type: string
+      description: ID of a test.guide task
+
+    commitHash:
+      in: path
+      name: commitHash
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{40}$'
+      description: Hash of the indexed commit
+
+    limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        default: 100
+        minimum: 0
+        maximum: 1000
+      description: Maximum number of elements to return
+
+    cursor:
+      in: query
+      name: cursor
+      schema:
+        type: string
+        minLength: 1
+      description: Base64 encoded string of the last item that was part of the original answer
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    ScmConfigurationId:
+      type: object
+      properties:
+        scmConfigurationId:
+          type: integer
+          format: int64
+          example: 1
+          description: ID of the requested SCM configuration
+
+    ScmConfiguration:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: SCM configuration identifier
+          example: 1
+          readOnly: true
+        label:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Label of the SCM configuration
+          example: 'ProjectGit'
+        type:
+          type: string
+          enum:
+            - GIT
+            - SVN
+          description: |
+            Type of the scm.
+
+            For detailed descriptions see section "Schemas".
+        url:
+          type: string
+          minLength: 1
+          maxLength: 4096
+          description: URL of the repository
+          example: 'https://scm.example.com/workspaces/project-workspace.git'
+        checkoutStrategy:
+          type: string
+          enum:
+            - NOCLEAN
+            - CLEAN
+            - CLONE
+          default: CLEAN
+          description: Strategy for checkout of the source code
+      discriminator:
+        propertyName: type
+        mapping:
+          GIT: '#/components/schemas/GitConfiguration'
+          SVN: '#/components/schemas/SvnConfiguration'
+      required:
+        - type
+        - label
+        - url
+      example:
+        label: 'ProjectGit'
+        type: 'GIT'
+        url: 'https://scm.example.com/workspaces/project-workspace.git'
+        authentication:
+          type: 'BASIC_INLINE'
+          username: 'TechUser'
+          password: ''
+        checkoutStrategy: 'CLEAN'
+
+    SvnConfiguration:
+      allOf:
+        - $ref: '#/components/schemas/ScmConfiguration'
+        - type: object
+          properties:
+            authentication:
+              $ref: '#/components/schemas/SvnAuthentication'
+          required:
+            - authentication
+
+    GitConfiguration:
+      allOf:
+        - $ref: '#/components/schemas/ScmConfiguration'
+        - type: object
+          properties:
+            authentication:
+              $ref: '#/components/schemas/GitAuthentication'
+            useLfs:
+              type: boolean
+              description: |
+                If `true`, activate Git LFS support for this repository.
+              default: false
+            lfsConfig:
+              $ref: '#/components/schemas/CustomLfsConfig'
+            submoduleCheckoutStrategy:
+              description: |
+                The checkout strategy for submodules.
+                
+                * NONE will not checkout submodules
+                * RECURSIVE will checkout all submodules recursively
+              type: string
+              enum:
+                - RECURSIVE
+                - NONE
+              default: RECURSIVE
+            disableShallowClone:
+              type: boolean
+              description: |
+                If shallow clone is enabled, git will only fetch the latest/specified revision of a repository before 
+                checkout.
+                If shallow clone is disabled, the whole repositories history will be fetched and afterward the specified 
+                reference will be checked out.
+                
+                Default is shallow clone. 
+                
+                ATTENTION: disabling shallow clone might result in much longer checkout durations.
+              default: false
+          required:
+            - authentication
+
+    CustomLfsConfig:
+      type: object
+      properties:
+        url:
+          type: string
+          description: |
+            URL for accessing the external Git LFS storage system.
+            
+            Please note: If the external storage is located in an JFrog Artifactory, the repository key in the URL most 
+            likely needs to be prefixed with "api/lfs/"!
+          minLength: 1
+          maxLength: 4096
+          example: 'https://my.artifactory/artifactory/api/lfs/lfs-repo'
+        authentication:
+          $ref: '#/components/schemas/GitLfsAuthentication'
+      required:
+        - url
+        - authentication
+
+    GitAuthentication:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - BASIC_INLINE
+            - BASIC_VAULT
+            - SSH_INLINE
+      discriminator:
+        propertyName: type
+        mapping:
+          BASIC_INLINE: '#/components/schemas/GitBasicInlineAuthentication'
+          BASIC_VAULT: '#/components/schemas/GitBasicVaultAuthentication'
+          SSH_INLINE: '#/components/schemas/GitSshInlineAuthentication'
+      required:
+        - type
+
+    GitBasicInlineAuthentication:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/GitAuthentication'
+        - type: object
+          properties:
+            username:
+              type: string
+              description: Username for the system
+            password:
+              type: string
+              description: Password for the system
+          required:
+            - username
+            - password
+
+    GitBasicVaultAuthentication:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/GitAuthentication'
+        - type: object
+          properties:
+            vaultLabel:
+              type: string
+              description: The label of the Vault configured as secret management system in test.guide
+            secretsEngine:
+              type: string
+              description: Path to the Key/Value secrets engine
+            path:
+              type: string
+              description: Path to the secret in the secrets engine
+            usernameKey:
+              type: string
+              description: Key of the username in the secret
+            passwordKey:
+              type: string
+              description: Key of the password in the secret
+          required:
+            - vaultLabel
+            - secretsEngine
+            - secret
+            - usernameKey
+            - passwordKey
+
+    GitSshInlineAuthentication:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/GitAuthentication'
+        - type: object
+          properties:
+            privateKey:
+              type: string
+              description: The private key for ssh authentication in the OpenSSH format
+          required:
+            - privateKey
+
+    GitLfsAuthentication:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - BASIC_INLINE
+      discriminator:
+        propertyName: type
+        mapping:
+          BASIC_INLINE: '#/components/schemas/GitLfsBasicInlineAuthentication'
+      required:
+        - type
+
+    GitLfsBasicInlineAuthentication:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/GitLfsAuthentication'
+        - type: object
+          properties:
+            username:
+              type: string
+              description: Username for the system
+            password:
+              type: string
+              description: Password for the system
+          required:
+            - username
+            - password
+
+    SvnAuthentication:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - BASIC_INLINE
+      discriminator:
+        propertyName: type
+        mapping:
+          BASIC_INLINE: '#/components/schemas/SvnBasicInlineAuthentication'
+      required:
+        - type
+
+    SvnBasicInlineAuthentication:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/SvnAuthentication'
+        - type: object
+          properties:
+            username:
+              type: string
+              description: Username for the system
+            password:
+              type: string
+              description: Password for the system
+          required:
+            - username
+            - password
+
+    StartIndexingRequest:
+      type: object
+      properties:
+        scmConfigurationId:
+          type: integer
+          format: int64
+          description: SCM configuration identifier
+          example: 1
+        commitRef:
+          type: string
+          description: The commit reference to be indexed.
+          example: master
+      required:
+        - scmConfigurationId
+
+    StartIndexingResponse:
+      type: object
+      properties:
+        taskId:
+          type: string
+          description: The ID of the test.guide task that indexes the commit. May be used to ask for the progress.
+        commitHash:
+          type: string
+          description: The concrete Git commit hash that is indexed. Needed to query the result.
+        state:
+          $ref: '#/components/schemas/IndexingState'
+
+    IndexingState:
+      type: string
+      enum:
+        - INDEXING
+        - FINISHED
+        - ERROR
+      description: |
+        The state of the indexing process.
+        
+        * INDEXING: the indexing of the commit is currently in progress.
+        * FINISHED: the indexing of the commit finished successfully and the index is now ready to be queried.
+        * ERROR: an error occurred while indexing the commit. You may retry.
+
+    IndexingTaskInfo:
+      type: object
+      properties:
+        scmConfigurationId:
+          type: integer
+          format: int64
+          description: SCM configuration identifier
+          example: 1
+        commitHash:
+          type: string
+          description: The concrete Git commit hash that is indexed. Needed to query the result.
+        state:
+          $ref: '#/components/schemas/IndexingState'
+
+    CommitIndex:
+      type: object
+      properties:
+        next_cursor:
+          type: string
+          description: The cursor to fetch the next page. Missing if there is no next page
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexedFile'
+
+    IndexedFile:
+      type: object
+      properties:
+        filename:
+          type: string
+        type:
+          type: string
+          enum:
+            - package
+            - project
+            - tcf
+            - tbc
+            - scenario
+      discriminator:
+        propertyName: type
+        mapping:
+          package: '#/components/schema/IndexedPackageFile'
+          project: '#/components/schema/IndexedProjectFile'
+          tcf: '#/components/schema/IndexedTCFFile'
+          tbc: '#/components/schema/IndexedTBCFile'
+          scenario: '#/components/schema/IndexedScenarioFile'
+
+    IndexedPackageFile:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/IndexedFile'
+        - properties:
+            attributes:
+              type: array
+              items:
+                $ref: '#/components/schemas/PackageAttribute'
+            testScriptId:
+              type: string
+
+    PackageAttribute:
+      type: object
+      properties:
+        label:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
+    IndexedProjectFile:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/IndexedFile'
+        - properties:
+            attributes:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectAttribute'
+            testSuiteId:
+              type: string
+
+    ProjectAttribute:
+      type: object
+      properties:
+        label:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
+    IndexedTCFFile:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/IndexedFile'
+
+    IndexedTBCFile:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/IndexedFile'
+
+    IndexedScenarioFile:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/IndexedFile'
+        - properties:
+            properties:
+              type: array
+              items:
+                $ref: '#/components/schemas/ScenarioProperty'
+
+    ScenarioProperty:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+
+  responses:
+    GeneralError:
+      description: |
+        An error occurred.
+
+        For example following status codes can be sent:
+        * 400: The request is invalid.
+        * 401: The user is unauthorized. Please check your authentication key.
+        * 403: The user does not have the necessary rights to do this action.
+        * 500: An internal error occurred. You maybe found a bug.
+          You can report bugs to [support@tracetronic.com](mailto:support@tracetronic.com).
+        * 503: The server is starting or is down for maintenance.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

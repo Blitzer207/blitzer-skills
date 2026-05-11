@@ -1,0 +1,2027 @@
+openapi: 3.0.2
+info:
+  title: test.guide Artifact API
+  description: API for up- and download of artifacts to/from test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.21.0
+servers:
+  - url: /api/artifact
+    description: this test.guide server
+  - url: /{context-path}/api/artifact
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/artifact'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+
+  /depositories:
+    post:
+      summary: Create a depository
+      operationId: create-depository
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The depository to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Depository'
+      responses:
+        '200':
+          description: Depository was successfully created. Returns the id of the newly created depository.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/DepositoryIdResponse'
+        '400':
+          description: The provided depository is invalid.
+        '409':
+          description: The provided depository already exists or there is no artifact database configured.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      summary: Retrieve all depositories
+      operationId: get-depositories
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: shared
+          in: query
+          description: Whether depositories shared for the project should also be returned
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: The depositories have been successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Depository'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}:
+    get:
+      summary: Get all information of a depository
+      operationId: get-depository
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      responses:
+        '200':
+          description: Information of the depository were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Depository'
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      summary: Delete a depository
+      operationId: delete-depository
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      responses:
+        '204':
+          description: The depository was successfully deleted.
+        '404':
+          description: The depository does not exist.
+        '412':
+          description: Depository can not be deleted because it still contains storages.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/storages:
+    post:
+      summary: Create storage
+      operationId: create-depository-storage
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      requestBody:
+        description: The storage to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Storage'
+      responses:
+        '200':
+          description: Storage was successfully created. Returns the storage number of the newly created storage in the depository.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/StorageNumberResponse'
+        '400':
+          description: The provided storage is invalid.
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      summary: Get all storages of a given depository
+      operationId: get-depository-storages
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      responses:
+        '200':
+          description: Storages were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Storage'
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/storages/deactivate:
+    put:
+      summary: Deactivate the currently active storage in this depository
+      operationId: deactivate-depository-storages
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      responses:
+        '204':
+          description: The active storage was successfully deactivated.
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/storages/{storageNumber}:
+    get:
+      summary: Get all information of a storage
+      operationId: get-depository-storage
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/storageNumberInPath'
+      responses:
+        '200':
+          description: Information of the storage were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Storage'
+        '404':
+          description: The depository or storage number does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      summary: Delete the given storage. Files in the storage are not automatically removed.
+      operationId: delete-depository-storage
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/storageNumberInPath'
+        - $ref: '#/components/parameters/removeAllFilesFromStorageInQuery'
+      responses:
+        '202':
+          description: A task was started that is deleting the storage.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskIdResponse'
+        '404':
+          description: The depository or storage number does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/storages/{storageNumber}/activate:
+    put:
+      summary: Activate this storage
+      operationId: activate-depository-storage
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/storageNumberInPath'
+      responses:
+        '204':
+          description: The storage was successfully activated.
+        '404':
+          description: The depository or storage number does not exist.
+        '409':
+          description: Activating the storage is not allowed, due to a storage migration or deletion.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/permissions:
+    get:
+      summary: Get all artifact permissions for project roles of the user management.
+      operationId: get-all-project-role-permissions
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      responses:
+        '200':
+          description: The project role permissions were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectRolePermissions'
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/permissions/{projectRoleId}:
+    get:
+      summary: Get artifact permissions for a specific project role of the user management.
+      operationId: get-project-role-permissions
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/projectRoleId'
+      responses:
+        '200':
+          description: The project role permissions were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ProjectRolePermissions'
+        '404':
+          description: The depository or project role does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      summary: Create artifact permissions for a project role of the user management.
+      operationId: put-project-role-permissions
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/projectRoleId'
+      requestBody:
+        description: The project role permissions to create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectRolePermissions'
+      responses:
+        '204':
+          description: The project role permissions were successfully created.
+        '400':
+          description: The given project role permissions are invalid.
+        '404':
+          description: The depository or project role does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      summary: Delete artifact permissions for a a specific project role of the user management.
+      operationId: delete-project-role-permissions
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/projectRoleId'
+      responses:
+        '204':
+          description: The project role permissions were successfully deleted.
+        '404':
+          description: The depository or project role does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/shares:
+    get:
+      summary: Get all project shares of the depository.
+      operationId: get-all-project-shares
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+      responses:
+        '200':
+          description: The project shares for the depository were successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DepositoryProjectShare'
+        '404':
+          description: The depository with this id was not found.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /depositories/{depositoryId}/shares/{projectId}:
+    get:
+      summary: Get the project share of the depository for the project.
+      operationId: get-project-share
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/projectIdInPath'
+      responses:
+        '200':
+          description: The project share of the depository for the project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepositoryProjectShare'
+        '404':
+          description: The depository does not exist or there is no project share in this depository for this project.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      summary: Share the depository with another project or change an existing project share.
+      operationId: put-project-share
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/projectIdInPath'
+      requestBody:
+        description: The permissions of the project share
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositoryProjectShare'
+      responses:
+        '204':
+          description: The depository was successfully shared with this project.
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      summary: Revoke the project share of this depository.
+      operationId: revoke-project-share
+      tags:
+        - depositories
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInPath'
+        - $ref: '#/components/parameters/projectIdInPath'
+      responses:
+        '204':
+          description: The project share was successfully revoked.
+        '404':
+          description: The depository does not exist or the depository was not shared with this project or there is no
+            artifact database configured.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /artifacts:
+    post:
+      summary: Upload an artifact
+      operationId: upload-artifact
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInQuery'
+        - name: attributes
+          in: query
+          description: |
+            Additional attributes to be added to the artifact.
+            
+            The key and value are not allowed to be empty.
+          schema:
+            type: array
+            items:
+              type: string
+            example: [ 'key1=value1', 'key2=value2' ]
+        - name: validateLinkData
+          in: query
+          description: |
+            Only applies to artifact announcements via link upload. 
+            If set to `true`, the provided link data will be validated before creating the artifact.
+            Note: This only applies if all necessary information is provided with the link.
+            Otherwise, the provided information will be validated regardless of this flag.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        description: The artifact that shall be persisted by test.guide
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExternalLinkDescription'
+      responses:
+        '201':
+          description: The artifact has been successfully uploaded.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ArtifactCreatedResponse'
+        '404':
+          description: The requested depository does not exist or does not have an active storage config or there is no
+            artifact database configured.
+        '409':
+          description: The file was not accepted because a conflict occurred. A possible reason is that the active
+            storage of the depository has a quota configured and the storage exceeded this limit.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/depositoryIdInQuery'
+        - $ref: '#/components/parameters/artifactIdSearchParameter'
+        - $ref: '#/components/parameters/startDateSearchParameter'
+        - $ref: '#/components/parameters/endDateSearchParameter'
+        - $ref: '#/components/parameters/lastAccessStartDateSearchParameter'
+        - $ref: '#/components/parameters/lastAccessEndDateSearchParameter'
+        - $ref: '#/components/parameters/fileNameSearchParameter'
+        - $ref: '#/components/parameters/extensionSearchParameter'
+        - $ref: '#/components/parameters/attributesSearchParameter'
+        - $ref: '#/components/parameters/hashSearchParameter'
+        - $ref: '#/components/parameters/sharedSearchParameter'
+        - $ref: '#/components/parameters/shareIdSearchParameter'
+        - $ref: '#/components/parameters/lockedSearchParameter'
+        - $ref: '#/components/parameters/offsetSearchParameter'
+        - $ref: '#/components/parameters/limitSearchParameter'
+        - $ref: '#/components/parameters/minFileSizeSearchParameter'
+        - $ref: '#/components/parameters/maxFileSizeSearchParameter'
+      summary: Find artifacts
+      description: Finds all artifacts that meet the specified criteria and returns them ordered by their file name.
+      operationId: find-artifacts
+      responses:
+        '200':
+          description: Artifacts were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Artifact'
+        '404':
+          description: The depository does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /artifacts/{artifactId}:
+    get:
+      summary: Get all information of an artifact.
+      operationId: get-artifact
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+      responses:
+        '200':
+          description: The information were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Artifact'
+        '404':
+          description: The artifact does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      summary: Delete an artifact.
+      operationId: delete-artifact
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+      responses:
+        '200':
+          description: The artifact was successfully deleted.
+        '404':
+          description: The artifact does not exist.
+        '409':
+          description: The artifact cannot be deleted because it is locked.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /artifacts/{artifactId}/download:
+    get:
+      summary: Download an artifact.
+      operationId: download-artifact
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+      responses:
+        '200':
+          description: Download content of the artifact
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          headers:
+            Content-Disposition:
+              description: 'Standard Content-Disposition header with filename: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition'
+              required: true
+              example: |
+                attachment; filename="report.trf"; filename*=UTF-8''report.trf"
+              schema:
+                type: string
+            Digest:
+              description: |
+                Digest header that contains the md5 hash of the downloaded artifact. 
+                
+                See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Digest for more information.
+              example: md5=816401bbe5a4b42d6aaf51415f6698ce
+              schema:
+                type: string
+        '404':
+          description: The artifact does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /artifacts/{artifactId}/attributes/{attributeKey}:
+    get:
+      summary: Get the attribute values of an artifact attribute with the given key.
+      operationId: get-attribute
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+        - $ref: '#/components/parameters/attributeKey'
+      responses:
+        '200':
+          description: The attribute values were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtifactAttributeValue'
+        '404':
+          description: The artifact or the artifact attribute does not exist or there is no artifact database
+            configured.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      summary: Create an artifact attribute or change the attribute values of the artifact attribute with the given key.
+      operationId: put-attribute
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+        - $ref: '#/components/parameters/attributeKey'
+      requestBody:
+        description: The new values of the artifact attribute.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ArtifactAttributeValue'
+              minItems: 1
+      responses:
+        '204':
+          description: The attribute values were successfully changed.
+        '404':
+          description: The artifact does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      summary: Delete the artifact attribute with the given key.
+      operationId: delete-attribute
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+        - $ref: '#/components/parameters/attributeKey'
+      responses:
+        '204':
+          description: The attribute was successfully deleted.
+        '404':
+          description: The artifact or the artifact attribute does not exist or there is no artifact database
+            configured.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /artifacts/{artifactId}/share:
+    post:
+      summary: Create a share for an artifact.
+      operationId: create-share
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+      requestBody:
+        description: Information on the share to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateArtifactShareData'
+      responses:
+        '201':
+          description: A new share for the artifact was created successfully.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ShareCreatedResponse'
+        '404':
+          description: The artifact does not exist.
+        '409':
+          description: Could not create a new share because too many shares already exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /artifacts/{artifactId}/share/{shareId}:
+    delete:
+      summary: Revokes a share of an artifact.
+      operationId: revoke-share
+      tags:
+        - artifacts
+      parameters:
+        - $ref: '#/components/parameters/artifactId'
+        - $ref: '#/components/parameters/shareId'
+      responses:
+        '204':
+          description: Successfully revoked the share.
+        '404':
+          description: The artifact or the share of the artifact does not exist or there is no artifact database
+            configured.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+components:
+
+  parameters:
+    depositoryIdInPath:
+      name: depositoryId
+      description: ID of the depository
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/DepositoryId'
+    depositoryIdInQuery:
+      name: depositoryId
+      description: ID of the depository
+      in: query
+      required: true
+      schema:
+        $ref: '#/components/schemas/DepositoryId'
+    storageNumberInPath:
+      name: storageNumber
+      description: number of the storage in the depository
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/StorageNumber'
+    projectRoleId:
+      name: projectRoleId
+      description: ID of the project role in the user management
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    removeAllFilesFromStorageInQuery:
+      name: removeAllFilesFromStorage
+      description: if `true` also delete all files from the storage
+      in: query
+      schema:
+        type: boolean
+        default: false
+    artifactId:
+      name: artifactId
+      description: ID of the artifact
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ArtifactId'
+    attributeKey:
+      name: attributeKey
+      description: Key of an artifact attribute
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ArtifactAttributeKey'
+    shareId:
+      name: shareId
+      description: ID of a share
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ShareId'
+    projectIdInPath:
+      name: projectId
+      in: path
+      description: ID of the test.guide project.
+      required: true
+      schema:
+        type: integer
+    projectId:
+      name: projectId
+      in: query
+      description: ID of the test.guide project.
+      required: true
+      schema:
+        type: integer
+    artifactIdSearchParameter:
+      name: artifactId
+      in: query
+      explode: true
+      style: form
+      schema:
+        type: array
+        items:
+          type: integer
+          format: int64
+    startDateSearchParameter:
+      name: startDate
+      in: query
+      style: form
+      description: Lower boundary for the upload date ("oldest") in RFC 3339 format (ISO 8601 compatible)
+      schema:
+        type: string
+        format: date-time
+    endDateSearchParameter:
+      name: endDate
+      in: query
+      style: form
+      description: Upper boundary for the upload date ("newest") in RFC 3339 format (ISO 8601 compatible)
+      schema:
+        type: string
+        format: date-time
+    lastAccessStartDateSearchParameter:
+      name: lastAccessStartDate
+      in: query
+      style: form
+      description: Lower boundary for the date of the last access ("oldest") in RFC 3339 format (ISO 8601 compatible)
+      schema:
+        type: string
+        format: date-time
+    lastAccessEndDateSearchParameter:
+      name: lastAccessEndDate
+      in: query
+      style: form
+      description: Upper boundary for the date of the last access ("newest") in RFC 3339 format (ISO 8601 compatible)
+      schema:
+        type: string
+        format: date-time
+    fileNameSearchParameter:
+      name: fileName
+      in: query
+      style: form
+      schema:
+        type: string
+    extensionSearchParameter:
+      name: extension
+      in: query
+      explode: true
+      style: form
+      schema:
+        type: array
+        items:
+          type: string
+          example:
+    attributesSearchParameter:
+      name: attributes
+      in: query
+      style: form
+      description: |
+        Provide key value pairs in the following form: 'key1=value1,value2|key2=value3'
+      schema:
+        type: string
+    hashSearchParameter:
+      name: hash
+      in: query
+      style: form
+      description: MD5 file hash
+      schema:
+        type: string
+        pattern: '^[A-Fa-f0-9]{32}$'
+    sharedSearchParameter:
+      name: shared
+      in: query
+      style: form
+      description: If true, find only shared artifacts. If false, find only not shared artifacts.
+      schema:
+        type: boolean
+    shareIdSearchParameter:
+      name: shareId
+      in: query
+      explode: true
+      style: form
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/ShareId'
+    lockedSearchParameter:
+      name: locked
+      in: query
+      style: form
+      description: |
+        If true, find only artifacts which are locked by a lockable artifact group. 
+        If false, find only artifacts which are not locked by a lockable artifact group.
+      schema:
+        type: boolean
+    offsetSearchParameter:
+      name: offset
+      in: query
+      style: form
+      description: The number of items to skip before starting to collect the result set.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+        example: 0
+    limitSearchParameter:
+      name: limit
+      in: query
+      style: form
+      description: The number of items to return (maximum 100).
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        example: 25
+    minFileSizeSearchParameter:
+      name: minFileSize
+      in: query
+      style: form
+      description: Find artifacts with a size greater then or equal to this minimum file size (in Byte).
+      schema:
+        type: integer
+        format: int64
+        example: 500
+    maxFileSizeSearchParameter:
+      name: maxFileSize
+      in: query
+      style: form
+      description: Find artifacts with a size less then or equal to this maximum file size (in Byte).
+      schema:
+        type: integer
+        format: int64
+        example: 1000
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    DepositoryId:
+      type: string
+      minLength: 3
+      maxLength: 15
+      pattern: '^[a-zA-Z0-9]{3,15}$'
+      example: 'myDepo'
+      description: Identifier of a depository
+
+    ArtifactId:
+      type: string
+      pattern: '^[a-zA-Z0-9]{3,15}-[1-9]\d*$'
+      description: Identifier of an artifact
+
+    ShareId:
+      type: string
+      pattern: '^[a-zA-Z0-9]{20}$'
+      description: Identifier of a share
+      example:
+
+    StorageNumber:
+      type: integer
+      description: Identifier of a storage in a given depository
+
+    DepositoryIdResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/DepositoryId'
+
+    StorageNumberResponse:
+      type: object
+      properties:
+        storageNumber:
+          $ref: '#/components/schemas/StorageNumber'
+
+    TaskId:
+      type: string
+      description: Identifier of a task
+
+    TaskIdResponse:
+      type: object
+      properties:
+        taskId:
+          $ref: '#/components/schemas/TaskId'
+
+
+    StorageQuota:
+      type: object
+      properties:
+        limitInGiB:
+          type: integer
+          description: Maximum of allowed memory usage of the Storage in GiB
+          minimum: 0
+        rejectUpload:
+          type: boolean
+          default: false
+          description: If true reject uploads to the storage if the configured limit is exceeded
+        notifyDepositoryManagerThresholdInPercent:
+          type: integer
+          description: Notify depository manager if the memory usage in percent exceeds this threshold
+          minimum: 0
+          maximum: 100
+        notifyDepositoryUsersThresholdInPercent:
+          type: integer
+          description: Notify all depository users if the memory usage in percent exceeds this threshold
+          minimum: 0
+          maximum: 100
+      required:
+        - limitInGiB
+
+    StorageConnectionCheckConfig:
+      type: object
+      description: |
+        When set the connection to the storage will be checked whenever the cron expression matches a time.
+        This connection check will only try to connect to the storage. It will not check other things like necessary 
+        permissions to upload or download files.
+      properties:
+        cronExpression:
+          type: string
+          minLength: 1
+          maxLength: 1024
+          default: 0 * * * *
+          description: |
+            Cron expression for a recurring execution in the UNIX cron format.
+            Example: '0 * * * *' will execute once every full hour.
+            
+            More information about the UNIX cron format can be found
+            [here](<https://man7.org/linux/man-pages/man5/crontab.5.html>).
+        timeZone:
+          type: string
+          maxLength: 128
+          minLength: 1
+          default: UTC
+          description: |
+            Time zone ID of the cron expression. Default value is 'UTC'.
+            
+            Possible time zone IDs can be:
+            * time zone abbreviations such as 'CET' (Central European Time)
+            * time zone abbreviations with time shift such as 'UTC+2', 'UTC+02' or 'UTC+02:00'
+            * region-based time zone IDs such as 'Europe/Berlin'
+        notifyProjectManagersOnFailure:
+          type: boolean
+          default: true
+          description: |
+            Project managers will receive an email notification if the connection to the storage cannot be established 
+            at the time of testing.
+            If this flag is set to false, this email notification will be omitted. 
+            You may want to be notified by an external alert manager as the result of the connection check is also 
+            exported with other test.guide metrics at /api/metrics.
+
+    Depository:
+      type: object
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/DepositoryId'
+        projectId:
+          type: integer
+          description: ID of the project to which the depository belongs
+          readOnly: true
+        activeStorage:
+          type: integer
+          description: Number of the depositories storage that is marked as active
+          nullable: true
+          readOnly: true
+        name:
+          type: string
+          description: Name of a depository
+
+    Storage:
+      type: object
+      description: Depository backing storage
+      properties:
+        storageType:
+          type: string
+          enum:
+            - fileStorage
+            - smbStorage
+            - artifactoryStorage
+            - awsS3Storage
+            - sftpStorage
+            - azureBlobStorage
+          description: |
+            Type of the storage, can be one of:
+              * "fileStorage"
+
+                _Example:_
+                ```
+                {
+                  "storageType": "fileStorage",
+                  "storageNumber": 1,
+                  "name": "MyLocalStorage",
+                  "keepFileInStorageWhenDeletingArtifact": false,
+                  "migrationRole": "SOURCE_OF_RUNNING_MIGRATION",
+                  "deletionState": "DELETION_RUNNING",
+                  "quota": {
+                    "limitInGiB": 10,
+                    "rejectUpload": false,
+                    "notifyDepositoryManagerThresholdInPercent": 75,
+                    "notifyDepositoryUsersThresholdInPercent": 90
+                  },
+                  "folder": "/mnt/path/to/files"
+                }
+                ```
+
+              * "smbStorage"
+
+                _Example:_
+                ```
+                {
+                  "storageType": "smbStorage",
+                  "storageNumber": 2,
+                  "name": "MySmbStorage",
+                  "keepFileInStorageWhenDeletingArtifact": false,
+                  "migrationRole": "SOURCE_OF_RUNNING_MIGRATION",
+                  "deletionState": "DELETION_RUNNING",
+                  "quota": {
+                    "limitInGiB": 10,
+                    "rejectUpload": false,
+                    "notifyDepositoryManagerThresholdInPercent": 75,
+                    "notifyDepositoryUsersThresholdInPercent": 90
+                  },
+                  "userName": "MyUser",
+                  "password": "myP455w0rd!",
+                  "domain": "mydomain",
+                  "host": "192.168.1.10",
+                  "port": 445,
+                  "share": "path/to/share",
+                  "folderPath": "path/to/folder",
+                  "dfsEnabled": false,
+                  "dialect": "SMB_3_1_1",
+                  "transportEncryptionEnabled": false
+                }
+                ```
+
+              * "artifactoryStorage"
+
+                _Example:_
+                ```
+                {
+                  "storageType": "artifactoryStorage",
+                  "storageNumber": 3,
+                  "name": "MyArtifactoryStorage",
+                  "keepFileInStorageWhenDeletingArtifact": false,
+                  "migrationRole": "SOURCE_OF_RUNNING_MIGRATION",
+                  "deletionState": "DELETION_RUNNING",
+                  "quota": {
+                    "limitInGiB": 10,
+                    "rejectUpload": false,
+                    "notifyDepositoryManagerThresholdInPercent": 75,
+                    "notifyDepositoryUsersThresholdInPercent": 90
+                  },
+                  "url": "http://localhost:8081/myArtifactory",
+                  "repoKey": "myRepository",
+                  "userName": "MyUser",
+                  "apiKey": "ABcdEF",
+                  "connectionTimeout": 10,
+                  "socketTimeout": 200
+                }
+                ```
+
+              * "awsS3Storage"
+
+                _Example:_
+                ```
+                {
+                  "storageType": "awsS3Storage",
+                  "storageNumber": 4,
+                  "name": "MyAwsS3Storage",
+                  "keepFileInStorageWhenDeletingArtifact": false,
+                  "migrationRole": "SOURCE_OF_RUNNING_MIGRATION",
+                  "deletionState": "DELETION_RUNNING",
+                  "quota": {
+                    "limitInGiB": 10,
+                    "rejectUpload": false,
+                    "notifyDepositoryManagerThresholdInPercent": 75,
+                    "notifyDepositoryUsersThresholdInPercent": 90
+                  },
+                  "bucketName": "my-aws-bucket",
+                  "customEndpoint: "my-local-s3:9000",
+                  "userName": "user",
+                  "password": "password",
+                  "objectKeyPrefix": "test.guide/",
+                  "storageClass": "STANDARD",
+                  "region": "US_EAST_1",
+                  "connectionTimeout": 10,
+                  "socketTimeout": 200
+                }
+                ```
+            
+              * "sftpStorage"
+
+                _Example:_
+                ```
+                {
+                  "storageType": "sftpStorage",
+                  "storageNumber": 5,
+                  "name": "MySftpStorage",
+                  "keepFileInStorageWhenDeletingArtifact": false,
+                  "migrationRole": "SOURCE_OF_RUNNING_MIGRATION",
+                  "deletionState": "DELETION_RUNNING",
+                  "quota": {
+                    "limitInGiB": 10,
+                    "rejectUpload": false,
+                    "notifyDepositoryManagerThresholdInPercent": 75,
+                    "notifyDepositoryUsersThresholdInPercent": 90
+                  },
+                  "host": "192.168.1.10",
+                  "port": 2222,
+                  "authenticationInfo": {
+                    "type": "BASIC",
+                    "userName": "MyUser",
+                    "password": "myP455w0rd!"
+                  }
+                  "folderPath": "path/to/folder"
+                }
+                ```
+            
+              * "azureBlobStorage"
+
+                _Example:_
+                ```
+                {
+                  "storageType": "azureBlobStorage",
+                  "storageNumber": 6,
+                  "name": "MyAzureBlobStorage",
+                  "keepFileInStorageWhenDeletingArtifact": false,
+                  "migrationRole": "SOURCE_OF_RUNNING_MIGRATION",
+                  "deletionState": "DELETION_RUNNING",
+                  "quota": {
+                    "limitInGiB": 10,
+                    "rejectUpload": false,
+                    "notifyDepositoryManagerThresholdInPercent": 75,
+                    "notifyDepositoryUsersThresholdInPercent": 90
+                  },
+                  "storageAccount": "https://myaccount.blob.core.windows.net/",
+                  "containerName": "my-container",
+                  "blobNamePrefix": "test.guide/",
+                  "authenticationInfo": {
+                    "type": "SHARED_KEY",
+                    "accountName": "myAccount",
+                    "accountKey": "Eby8v...oGMGw=="
+                  }
+                }
+                ```
+              For detailed descriptions see section "Schemas"
+        storageNumber:
+          allOf:
+            - $ref: '#/components/schemas/StorageNumber'
+            - readOnly: true
+        name:
+          type: string
+          maxLength: 127
+          description: Storage name
+          example: 'MyStorage'
+        keepFileInStorageWhenDeletingArtifact:
+          type: boolean
+          description: |
+            True, if a file should always be preserved in the storage when the belonging artifact is deleted.
+            False, if a file should be deleted from the storage if there is no artifact left which refers to the file.
+          default: false
+        migrationRole:
+          description: |
+            The role of this storage config in a storage migration. If this storage is currently migrated to another 
+            storage of the depository, the state will be SOURCE_OF_RUNNING_MIGRATION. If all artifacts of this storage 
+            where migrated successfully to the new storage, the state will be SOURCE_OF_FINISHED_MIGRATION. Otherwise, 
+            if not all artifacts were migrated successfully the state will be SOURCE_OF_FAILED_MIGRATION. If the 
+            storage is currently the target storage of a migration the state will be TARGET_OF_RUNNING_MIGRATION.
+            
+            The different roles imply different restrictions for actions on the storage. A storage config that is part
+            of a migration (as source or target storage) is not allowed to be removed until the migration finished.
+            The source storage of a migration is not allowed to be the active storage of the depository, and no 
+            artifacts can be created for that storage.
+          type: string
+          enum:
+            - SOURCE_OF_RUNNING_MIGRATION
+            - SOURCE_OF_FINISHED_MIGRATION
+            - SOURCE_OF_FAILED_MIGRATION
+            - TARGET_OF_RUNNING_MIGRATION
+          nullable: true
+          readOnly: true
+        deletionState:
+          description: |
+
+          type: string
+          enum:
+            - DELETION_RUNNING
+            - DELETION_FAILED
+          nullable: true
+          readOnly: true
+        quota:
+          $ref: '#/components/schemas/StorageQuota'
+        connectionCheck:
+          $ref: '#/components/schemas/StorageConnectionCheckConfig'
+      discriminator:
+        propertyName: storageType
+        mapping:
+          fileStorage: '#/components/schemas/StorageFile'
+          smbStorage: '#/components/schemas/StorageSmb'
+          artifactoryStorage: '#/components/schemas/StorageArtifactory'
+          awsS3Storage: '#/components/schemas/StorageAwsS3'
+          sftpStorage: '#/components/schemas/StorageSftp'
+          azureBlobStorage: '#/components/schemas/StorageAzureBlob'
+      required:
+        - storageType
+        - name
+      example:
+        storageType: 'fileStorage'
+        storageNumber: 1
+        name: 'MyLocalStorage'
+        folder: '/mnt/path/to/files'
+        keepFileInStorageWhenDeletingArtifact: false
+        quota:
+          limitInGiB: 100
+          rejectUpload: true
+          notifyDepositoryManagerThresholdInPercent: 80
+          notifyDepositoryUsersThresholdInPercent: 95
+
+    StorageFile:
+      description: Depository backing storage in local files
+      allOf:
+        - $ref: '#/components/schemas/Storage'
+        - type: object
+          properties:
+            folder:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: Path to local folder where the files should be stored
+          required:
+            - folder
+
+    StorageSmb:
+      description: Depository backing storage on the basis of Server Message Block (SMB)
+      allOf:
+        - $ref: '#/components/schemas/Storage'
+        - type: object
+          properties:
+            userName:
+              type: string
+              minLength: 1
+              maxLength: 255
+            password:
+              type: string
+              format: password
+              minLength: 1
+              maxLength: 255
+            domain:
+              type: string
+              maxLength: 255
+            host:
+              type: string
+              minLength: 1
+              maxLength: 255
+            port:
+              type: integer
+              minimum: 1
+              maximum: 65535
+              default: 445
+            share:
+              type: string
+              minLength: 1
+              maxLength: 255
+            folderPath:
+              type: string
+              minLength: 1
+              maxLength: 255
+            dfsEnabled:
+              type: boolean
+              default: false
+            dialect:
+              type: string
+              enum:
+                - SMB_2_0_2
+                - SMB_2_1
+                - SMB_2XX
+                - SMB_3_0
+                - SMB_3_0_2
+                - SMB_3_1_1
+            transportEncryptionEnabled:
+              type: boolean
+              default: false
+          required:
+            - userName
+            - password
+            - host
+            - share
+            - folderPath
+
+    StorageArtifactory:
+      description: Depository backing storage on the basis of JFrog Artifactory
+      allOf:
+        - $ref: '#/components/schemas/Storage'
+        - type: object
+          properties:
+            url:
+              type: string
+              minLength: 1
+              maxLength: 255
+            repoKey:
+              type: string
+              minLength: 1
+              maxLength: 255
+            userName:
+              type: string
+              minLength: 1
+              maxLength: 85
+            apiKey:
+              type: string
+              format: password
+              minLength: 1
+              maxLength: 1024
+            connectionTimeout:
+              type: integer
+              description: Connection timeout in seconds
+              minimum: 1
+              maximum: 3600
+              default: 10
+            socketTimeout:
+              type: integer
+              description: Socket timeout in seconds
+              minimum: 1
+              maximum: 3600
+              default: 200
+          required:
+            - url
+            - repoKey
+            - userName
+            - apiKey
+
+    StorageAwsS3:
+      description: |
+        Depository backing storage on the basis of <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html">AWS S3</a> or S3 compatible storages.
+      allOf:
+        - $ref: '#/components/schemas/Storage'
+        - type: object
+          properties:
+            bucketName:
+              type: string
+              description: Name of the S3 bucket
+              minLength: 3
+              maxLength: 63
+              pattern: '^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$'
+            customEndpoint:
+              type: string
+              description: Custom endpoint for S3 compatible storages
+              minLength: 1
+              maxLength: 255
+            userName:
+              type: string
+              description: Access key ID
+              minLength: 1
+              maxLength: 255
+            password:
+              type: string
+              description: Secret access key
+              format: password
+              minLength: 1
+              maxLength: 255
+            serverSideEncryption:
+              type: object
+              description: |
+                Configuration of 
+                <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/serv-side-encryption.html">
+                server side encryption</a> for new objects.
+                In AWS S3 server side encryption is enabled per default using 
+                <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html">
+                Amazon S3 managed keys (SSE-S3)</a> for new object uploads.
+                To use other encryption methods, this configuration can be changed.
+              properties:
+                kmsKeyId:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                  description: |
+                    The AWS KMS key ID to use for server-side encryption with KMS-managed keys (SSE-KMS). 
+                    <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingKMSEncryption.html">
+                    See also official documentation.</a>
+            bucketKeyEnabled:
+              type: boolean
+              default: true
+              description: |
+                If true, the bucket key feature of S3 is used to encrypt objects in the bucket.
+                <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-key.html">
+                See also official documentation.</a>
+            objectKeyPrefix:
+              type: string
+              maxLength: 255
+              pattern: '^(?:[a-zA-Z0-9\x21\x27\x28\x29\x2a\x2d\x2e\x5f]+\/)+$'
+            storageClass:
+              $ref: '#/components/schemas/AwsS3StorageClass'
+            region:
+              $ref: '#/components/schemas/AwsS3Regions'
+            awsRegion:
+              type: string
+              maxLength: 255
+              description: |
+                The region that hosts the AWS S3 storage. 
+                
+                ATTENTION: Use the exact name of the AWS region like 'us-east-1'.
+                
+                If no region is given, the region is automatically determined in the following order
+                from the test.guide process environment:
+                 * `AWS_REGION` environment variable
+                 * `aws.region` Java system property
+                 * `~/.aws/config/config` AWS configuration file
+                 * EC2 metadata service
+            connectionTimeout:
+              type: integer
+              format: int32
+              description: Connection timeout in seconds
+              default: 10
+              minimum: 1
+              maximum: 3600
+            socketTimeout:
+              type: integer
+              format: int32
+              description: Socket timeout in seconds
+              default: 200
+              minimum: 1
+              maximum: 3600
+          required:
+            - bucketName
+            - storageClass
+
+    AwsS3Regions:
+      type: string
+      deprecated: true
+      enum:
+        - GOV_CLOUD
+        - US_GOV_EAST_1
+        - US_EAST_1
+        - US_EAST_2
+        - US_WEST_1
+        - US_WEST_2
+        - EU_WEST_1
+        - EU_WEST_2
+        - EU_WEST_3
+        - EU_CENTRAL_1
+        - EU_NORTH_1
+        - AP_EAST_1
+        - AP_SOUTH_1
+        - AP_SOUTHEAST_1
+        - AP_SOUTHEAST_2
+        - AP_NORTHEAST_1
+        - AP_NORTHEAST_2
+        - SA_EAST_1
+        - CN_NORTH_1
+        - CN_NORTHWEST_1
+        - CA_CENTRAL_1
+        - ME_SOUTH_1
+      description: |
+        DEPRECATED: use the field awsRegion with lower-snake instead
+
+    AwsS3StorageClass:
+      type: string
+      enum:
+        - STANDARD
+        - REDUCED_REDUNDANCY
+        - GLACIER
+        - STANDARD_INFREQUENT_ACCESS
+        - ONE_ZONE_INFREQUENT_ACCESS
+        - INTELLIGENT_TIERING
+        - DEEP_ARCHIVE
+      description: |
+        Storage classes of Amazon S3
+        * STANDARD: Standard storage class
+        * REDUCED_REDUNDANCY: Reduced redundancy storage class
+        * GLACIER: Glacier storage class
+        * STANDARD_INFREQUENT_ACCESS: Standard storage class for infrequent access
+        * ONE_ZONE_INFREQUENT_ACCESS: One zone storage class for infrequent access
+        * INTELLIGENT_TIERING: Intelligent tiering storage class
+        * DEEP_ARCHIVE: Deep archive storage class
+
+    StorageSftp:
+      description: Depository backing storage on the basis of Secure File Transfer Protocol (SFTP)
+      allOf:
+        - $ref: '#/components/schemas/Storage'
+        - type: object
+          properties:
+            host:
+              type: string
+              minLength: 1
+              maxLength: 255
+            port:
+              type: integer
+              minimum: 1
+              maximum: 65535
+              default: 2222
+            authenticationInfo:
+              $ref: '#/components/schemas/SftpAuthenticationInfo'
+            folderPath:
+              type: string
+              minLength: 1
+              maxLength: 255
+          required:
+            - host
+            - authenticationInfo
+            - folderPath
+
+    SftpAuthenticationInfo:
+      description: Authentication for SFTP storage
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - BASIC
+            - SSH_KEY
+          description: |
+            Type of the authentication method, can be one of:
+              * "BASIC": Basic authentication with user name and password
+            
+                _Example:_
+                ```
+                {
+                  "type": "BASIC",
+                  "userName": "MyUser"
+                  "password": "*******",
+                }
+                ```
+            
+              * "SSH_KEY": SSH key authentication with user name and SSH private key
+            
+                _Example:_
+                ```
+                {
+                  "type": "SSH_KEY",
+                  "userName": "MyUser"
+                  "privateKey": "*******",
+                }
+                ```
+              For detailed descriptions see section "Schemas"
+        userName:
+          type: string
+          minLength: 1
+          maxLength: 255
+      discriminator:
+        propertyName: type
+        mapping:
+          BASIC: '#/components/schemas/SftpAuthenticationInfoBasic'
+          SSH_KEY: '#/components/schemas/SftpAuthenticationInfoSshKey'
+      required:
+        - type
+        - userName
+
+    SftpAuthenticationInfoBasic:
+      description: Authentication information for Basic authentication
+      allOf:
+        - $ref: '#/components/schemas/SftpAuthenticationInfo'
+        - type: object
+          properties:
+            password:
+              type: string
+              format: password
+              minLength: 1
+              maxLength: 255
+          required:
+            - password
+
+    SftpAuthenticationInfoSshKey:
+      description: Authentication information for SSH key authentication
+      allOf:
+        - $ref: '#/components/schemas/SftpAuthenticationInfo'
+        - type: object
+          properties:
+            privateKey:
+              type: string
+              minLength: 1
+              description: SSH private key in the OpenSSH PEM format
+          required:
+            - privateKey
+
+    StorageAzureBlob:
+      description: Depository backing storage on the basis of Azure Blob Storage
+      allOf:
+        - $ref: '#/components/schemas/Storage'
+        - type: object
+          properties:
+            storageAccount:
+              type: string
+              pattern: '^https?://.*'
+              minLength: 1
+              maxLength: 255
+              example: https://myaccount.blob.core.windows.net/
+            containerName:
+              type: string
+              pattern: '^[a-z0-9](-(?!-)|[a-z0-9])+[a-z0-9]$'
+              minLength: 3
+              maxLength: 63
+              example: my-container
+            blobNamePrefix:
+              type: string
+              # Empty strings not allowed, because Java OpenAPI generator erroneously uses multiline flag which makes
+              # it impossible to write a standard-confirm regex
+              pattern: '^/?(?:[^/]+[^/.]/)*$'
+              minLength: 1
+              maxLength: 255
+            authenticationInfo:
+              $ref: '#/components/schemas/AzureAuthenticationInfo'
+          required:
+            - storageAccount
+            - containerName
+            - authenticationInfo
+
+    AzureAuthenticationInfo:
+      description: Authentication information
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - BASIC
+            - SAS
+            - SHARED_KEY
+          description: |
+            Type of the authentication method, can be one of:
+              * "BASIC": Basic authentication with user name and password
+            
+                _Example:_
+                ```
+                {
+                  "type": "BASIC",
+                  "userName": "myUser"
+                  "password": "*******",
+                }
+                ```
+            
+              * "SHARED_KEY": Shared key authentication
+            
+                _Example:_
+                ```
+                {
+                  "type": "SHARED_KEY",
+                  "accountName": "myAccount"
+                  "accountKey": "Eby8v...oGMGw==",
+                }
+                ```
+              For detailed descriptions see section "Schemas"
+      discriminator:
+        propertyName: type
+        mapping:
+          BASIC: '#/components/schemas/AzureBasicAuthenticationInfo'
+          SAS: '#/components/schemas/AzureSasAuthenticationInfo'
+          SHARED_KEY: '#/components/schemas/AzureSharedKeyAuthenticationInfo'
+      required:
+        - type
+      example:
+        type: SAS
+        token: 'sv=2022-11-02&sr=b&sig=39Up9jzHkxhUIhFEjEh9594DJxe7w6cIRCg0V6ICGS0%3A377&sp=rcw'
+
+    AzureBasicAuthenticationInfo:
+      description: Basic authentication
+      allOf:
+        - $ref: '#/components/schemas/AzureAuthenticationInfo'
+        - type: object
+          properties:
+            userName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              example: 'myUser'
+            password:
+              type: string
+              format: password
+              minLength: 1
+              maxLength: 255
+              example: 'my secret password'
+          required:
+            - userName
+            - password
+
+    AzureSharedKeyAuthenticationInfo:
+      description: Shared key authentication
+      allOf:
+        - $ref: '#/components/schemas/AzureAuthenticationInfo'
+        - type: object
+          properties:
+            accountName:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: Account name
+              example: 'myaccount'
+            accountKey:
+              type: string
+              minLength: 1
+              maxLength: 255
+              description: Base 64 encoded account key
+              example: 'Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
+          required:
+            - accountName
+            - accountKey
+
+    AzureSasAuthenticationInfo:
+      description: Shared access signature authentication
+      allOf:
+        - $ref: '#/components/schemas/AzureAuthenticationInfo'
+        - type: object
+          properties:
+            token:
+              type: string
+              minLength: 1
+              maxLength: 1024
+              description: SAS token
+              example: 'sv=2022-11-02&sr=b&sig=39Up9jzHkxhUIhFEjEh9594DJxe7w6cIRCg0V6ICGS0%3A377&sp=rcw'
+          required:
+            - token
+
+    ProjectRolePermissions:
+      type: object
+      properties:
+        projectRoleId:
+          type: integer
+          format: int64
+          description: ID of the project role in the user management
+          readOnly: true
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactPermission'
+      required:
+        - permissions
+
+    DepositoryProjectShare:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          description: ID of the project the depository is shared with.
+          readOnly: true
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArtifactPermission'
+      required:
+        - permissions
+
+    ArtifactPermission:
+      type: string
+      description: Permission for artifacts
+      enum:
+        - READ
+        - UPLOAD
+        - DELETE
+        - EDIT_ATTRIBUTES
+
+    Artifact:
+      type: object
+      properties:
+        id:
+          allOf:
+            - $ref: '#/components/schemas/ArtifactId'
+          readOnly: true
+        fileName:
+          type: string
+          description: File name
+        extension:
+          type: string
+          description: File extension
+        fileSize:
+          type: integer
+          format: int64
+          description: File size in bytes
+        hash:
+          type: string
+          description: MD5 hash of the file
+        uploadDate:
+          type: string
+          format: date-time
+          description: Timestamp of the file upload in RFC 3339 format (ISO 8601 compatible)
+        lastAccessDate:
+          type: string
+          format: date-time
+          description: Timestamp of last accessing the artifact in RFC 3339 format (ISO 8601 compatible)
+        uploader:
+          type: string
+          description: User that has uploaded this artifact
+        attributeList:
+          type: array
+          nullable: true
+          description: |
+            List of attributes of the artifact.
+          items:
+            $ref: '#/components/schemas/ArtifactAttribute'
+        shares:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ArtifactShare'
+        lockedBy:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/LockedArtifactGroup'
+
+    ArtifactAttribute:
+      type: object
+      description: |
+        Attribute of an artifact that may have multiple values.
+      properties:
+        key:
+          $ref: '#/components/schemas/ArtifactAttributeKey'
+        values:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ArtifactAttributeValue'
+          example:
+            - SomeTag
+            - AnotherTag
+
+    ArtifactAttributeKey:
+      type: string
+      description: Key of an artifact attribute.
+      minLength: 1
+      maxLength: 127
+      example: tags
+
+    ArtifactAttributeValue:
+      type: string
+      description: Value of an artifact attribute.
+      minLength: 1
+      maxLength: 4095
+      example: SomeTag
+
+    ArtifactShare:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 20
+          maxLength: 20
+          description: The ID of the share.
+          example: OXnCVGtnQGwWWF6fTt0E
+        link:
+          type: string
+          description: The link that may be used to download the artifact.
+          example: https://test.guide/api/artifact/share/OXnCVGtnQGwWWF6fTt0E
+        description:
+          type: string
+          description: The description of the share.
+        creator:
+          type: string
+          description: User that created the share.
+        createDate:
+          type: string
+          format: date-time
+          description: Timestamp of the creation of the share in RFC 3339 format (ISO 8601 compatible).
+
+    LockedArtifactGroup:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Name of the locked artifact group.
+          example: MyRelease
+
+    ArtifactCreatedResponse:
+      type: object
+      properties:
+        artifactId:
+          type: string
+
+    CreateArtifactShareData:
+      type: object
+      properties:
+        description:
+          type: string
+          maxLength: 255
+          description: The description of the share.
+
+    ShareCreatedResponse:
+      type: object
+      properties:
+        shareId:
+          type: string
+          description: The ID of the newly created share.
+
+    ExternalLinkDescription:
+      description: |
+        Description of an external link to a file that shall be announced in test.guide. 
+        The link must reference a file in a configured storage.
+        External link announcement does not work with storages of type 'fileStorage'.
+        
+        If one of the fields 'md5' or 'fileSize' is not provided the artifact management will try to find out the 
+        missing values by asking the configured storage about that information. Note, that this also checks, that 
+        the file exists in the corresponding storage.
+        If both 'md5' and 'fileSize' are provided, there will be no check anymore. This may result in a 
+        performance boost but may also lead to inconsistent artifact information if the values are not correct or 
+        invalid artifacts if the files are missing.
+      type: object
+      properties:
+        link:
+          type: string
+          minLength: 1
+          maxLength: 4091
+          description: The external link to the file to be announced in test.guide.
+          example: '\\myHost\myShare\storageFolder\filePath.artifact'
+        md5:
+          type: string
+          pattern: '^[A-Fa-f0-9]{32}$'
+          description: |
+            The MD5 hash of the file as hex string.
+            
+            The MD5 hash is required if the storage type that the link refers to does not provide the hash.
+            Although, storages may provide the hash, it is safer to provide the hash when announcing the artifact to test.guide.
+          example: '816401bbe5a4b42d6aaf51415f6698ce'
+        fileSize:
+          type: integer
+          format: int64
+          minimum: 0
+          description: |
+            The size of the file in bytes.
+      required:
+        - link
+
+  responses:
+    GeneralError:
+      description: |
+        An error occurred.
+
+        For example following status codes can be sent:
+        * 400: The request is invalid.
+        * 401: The user is unauthorized. Please check your authentication key.
+        * 403: The user does not have the necessary rights to do this action.
+        * 500: An internal error occurred. You maybe found a bug.
+          You can report bugs to [support@tracetronic.com](mailto:support@tracetronic.com).
+        * 503: The server is starting or is down for maintenance.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

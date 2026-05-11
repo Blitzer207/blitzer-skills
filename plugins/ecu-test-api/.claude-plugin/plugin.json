@@ -1,7 +1,7 @@
 {
   "name": "ecu-test-api",
   "version": "0.1.0",
-  "description": "ecu.test API skills with bundled 2024.3 and 2026.1 references for COM, REST, Object, Tools, Report, internal APIs, generators, trace analysis, test management, data structures, and user utilities.",
+  "description": "ecu.test API skills with bundled references for COM, REST, Object, Tools, Report, internal APIs, generators, trace analysis, test management, data structures, user utilities, and ecutest_code automation.",
   "author": {
     "name": "leili"
   },

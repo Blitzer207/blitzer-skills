@@ -1,6 +1,6 @@
 # ecu.test API Plugin
 
-This plugin packages 11 ecu.test API skills as separate, routeable skills with bundled 2024.3 and 2026.1 references.
+This plugin packages 12 ecu.test API and automation skills as separate, routeable skills with bundled references.
 
 ## Included Skills
 
@@ -15,6 +15,7 @@ This plugin packages 11 ecu.test API skills as separate, routeable skills with b
 - `ecu-test-tools-api`
 - `ecu-test-trace-analysis-api`
 - `ecu-test-user-utility-api`
+- `ecutest-code`
 
 ## Codex
 

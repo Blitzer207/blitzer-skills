@@ -1,0 +1,714 @@
+openapi: 3.0.3
+info:
+  title: test.guide Webhook API
+  description: API for accessing webhook functionality of test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: 'https://www.tracetronic.com/software-license-terms/'
+  version: 1.4.0
+servers:
+  - url: /api/integration
+    description: this test.guide server
+  - url: '/{context-path}/api/integration'
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/integration'
+    description: custom test.guide server
+    variables:
+      url:
+        default: 'https://localhost:8443'
+security:
+  - TestGuideAuthKey: []
+  - BearerAuth: []
+paths:
+  /webhook:
+    post:
+      tags:
+        - webhook
+      summary: Create a webhook.
+      operationId: post-webhook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Description of the webhook.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Webhook'
+      responses:
+        '201':
+          description: Webhook successfully posted. Returns the id of the created webhook.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookId'
+          links:
+            get-webhook:
+              operationId: get-webhook
+              description: Use the ID to get information about the webhook.
+              parameters:
+                projectId: $request.query.projectId
+                webhookId: $response.body#/webhookId
+            delete-webhook:
+              operationId: delete-webhook
+              description: Use the ID to delete the webhook.
+              parameters:
+                projectId: $request.query.projectId
+                webhookId: $response.body#/webhookId
+        '400':
+          description: The provided webhook is invalid.
+        '401':
+          description: The user is unauthorized.
+        '403':
+          description: >-
+            The user is not an active user of the project or the project doesn't
+            exist or the user doesn't have necessary permission.
+        '409':
+          description: The maximum number of webhooks for this project has been reached.
+      callbacks:
+        eventHappend:
+          '{$request.body#/callbackUrl}':
+            post:
+              description: Calling back because a event happened that was subscribed to.
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: '#/components/schemas/WebhookPayload'
+              responses:
+                2XX:
+                  description: Return a success code to accept the callback
+                3XX:
+                  description: Do not return this code. Redirects are not supported.
+                4XX:
+                  description: >
+                    Returns this code if the server cannot accept the callback
+                    in general. No retry will be done.
+                5XX:
+                  description: >
+                    Returns this code if the server cannot currently accept the
+                    callback, because of a server-side issue. A maximum of two
+                    attempts will be made to call the callback in 30s intervals.
+    get:
+      tags:
+        - webhook
+      summary: Get all webhooks of a project.
+      operationId: get-webhooks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/eventType'
+      responses:
+        '200':
+          description: List of all webhooks in the given project.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+        '401':
+          description: The user is unauthorized.
+        '403':
+          description: >-
+            The user is not an active user of the project or the project doesn't
+            exist or the user doesn't have necessary permission.
+  '/webhook/{webhookId}':
+    get:
+      tags:
+        - webhook
+      summary: Get a webhook.
+      operationId: get-webhook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/webhookId'
+      responses:
+        '200':
+          description: The requested webhook.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '401':
+          description: The user is unauthorized.
+        '403':
+          description: >-
+            The user is not an active user of the project or the project doesn't
+            exist or the user doesn't have necessary permission.
+        '404':
+          description: The webhookId is not found or invalid.
+    delete:
+      tags:
+        - webhook
+      summary: Delete a webhook.
+      operationId: delete-webhook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/webhookId'
+      responses:
+        '204':
+          description: The webhook that was successfully deleted.
+        '400':
+          description: The webhook can not be deleted.
+        '401':
+          description: The user is unauthorized.
+        '403':
+          description: >-
+            The user is not an active user of the project or the project doesn't
+            exist or the user doesn't have necessary permission.
+        '404':
+          description: The webhookId is not found or invalid.
+    patch:
+      tags:
+        - webhook
+      summary: Change a webhook.
+      operationId: patch-webhook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/webhookId'
+      requestBody:
+        description: Changes to the webhook.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchableWebhook'
+      responses:
+        '200':
+          description: Successfully updated the webhook.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          description: The provided webhook is invalid.
+        '401':
+          description: The user is unauthorized.
+        '403':
+          description: >-
+            The user is not an active user of the project or the project doesn't
+            exist or the user doesn't have necessary permission.
+        '404':
+          description: The webhookId is not found or invalid.
+  '/webhook/{webhookId}/try':
+    post:
+      tags:
+        - webhook
+      summary: Try a webhook.
+      operationId: try-webhook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/webhookId'
+      responses:
+        '200':
+          description: The webhook was tested successfully.
+        '400':
+          description: Testing the connection to the server failed.
+        '401':
+          description: The user is unauthorized.
+        '403':
+          description: >-
+            The user is not an active user of the project or the project doesn't
+            exist or the user doesn't have necessary permission.
+        '404':
+          description: The webhookId is not found or invalid.
+        '500':
+          description: An internal error occurred while testing the webhook.
+components:
+  schemas:
+    WebhookId:
+      type: object
+      properties:
+        webhookId:
+          type: integer
+          format: int64
+          example: 1
+          description: ID of the requested webhook
+    Webhook:
+      type: object
+      properties:
+        webhookId:
+          type: integer
+          format: int64
+          description: ID of the webhook
+          example: 1
+          readOnly: true
+        name:
+          type: string
+          description: Human readable name of the webhook
+          example: MyWebhook
+        callbackUrl:
+          type: string
+          format: uri
+          description: Callback URL of the webhook
+          example: 'http://my/callback/url'
+        eventTypes:
+          type: array
+          description: Event types through which the webhook is triggered
+          items:
+            $ref: '#/components/schemas/WebhookEventTypeId'
+        acceptSelfSigned:
+          type: boolean
+          description: If `true` then self signed certificates are not causing an error
+          default: true
+        uploadInfo:
+          $ref: '#/components/schemas/UploadInfo'
+        active:
+          type: boolean
+          description: If `true` then events are send to webhook
+          default: true
+        lastSuccess:
+          type: string
+          format: date-time
+          readOnly: true
+          description: timestamp of last successful webhook call
+        lastError:
+          type: string
+          format: date-time
+          readOnly: true
+          description: timestamp of last failed webhook call
+        lastErrorMessage:
+          type: string
+          readOnly: true
+          description: message of last failed webhook call
+        deactivationTime:
+          type: string
+          format: date-time
+          readOnly: true
+          description: >-
+            Webhook will be deactivated when it is called unsuccessfully after
+            this timestamp. Time will be resetted after a single successful
+            call.
+      required:
+        - name
+        - callbackUrl
+        - eventTypes
+    PatchableWebhook:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: Human readable name of the webhook
+          example: MyWebhook
+        callbackUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Callback URL of the webhook
+          example: 'http://my/callback/url'
+        eventTypes:
+          type: array
+          nullable: true
+          description: Event types through which the webhook is triggered
+          items:
+            $ref: '#/components/schemas/WebhookEventTypeId'
+        acceptSelfSigned:
+          type: boolean
+          nullable: true
+          description: If `true` then self signed certificates are not causing an error
+        active:
+          type: boolean
+          nullable: true
+          description: If `true` then events are send to webhook
+    WebhookEventTypeId:
+      type: string
+      description: Type of webhook events
+    UploadInfo:
+      type: object
+      readOnly: true
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: ID of the uploading user
+          example: 1
+        userName:
+          type: string
+          description: Name of the uploading user
+          example: TestUser
+        uploadDate:
+          type: string
+          format: date-time
+          description: Upload time
+          example: '2021-02-16T12:34:56.789Z'
+      required:
+        - userId
+        - userName
+        - uploadDate
+    WebhookPayload:
+      type: object
+      description: Payload of webhook call
+      properties:
+        webhookId:
+          type: integer
+          format: int64
+          description: ID of the webhook
+          example: 1
+        projectId:
+          type: integer
+          description: ID of the test.guide project
+          example: 1
+        events:
+          type: array
+          description: Array of events happened
+          items:
+            $ref: '#/components/schemas/WebhookEvent'
+      required:
+        - webhookId
+        - projectId
+        - events
+    WebhookEvent:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          description: unix timestamp in milliseconds when the event happened
+          example: '1613578575834'
+        eventType:
+          type: string
+          description: type of the webhook event
+      required:
+        - eventType
+      example:
+        eventType: REPORT_UPLOAD
+        timestamp: 1613578575834
+        atxId: 45
+    WebhookArtifactUploadedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            artifactId:
+              type: string
+              pattern: '[a-zA-Z0-9]{3,15}-[1-9]\d*'
+              description: ID of the artifact uploaded
+              example: depository-1
+            eventType:
+              const: ARTIFACT_UPLOAD
+          required:
+            - artifactId
+      example:
+        eventType: ARTIFACT_UPLOAD
+        timestamp: 1613578575834
+        artifactId: depository-1
+    WebhookExecutionTaskStateChangedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            taskId:
+              type: integer
+              format: int64
+              description: ID of the task that has changed
+              example: 42
+            newState:
+              $ref: '#/components/schemas/ExecutionTaskState'
+            eventType:
+              const: EXECUTION_TASK_STATE_CHANGE
+          required:
+            - taskId
+            - newState
+      example:
+        eventType: EXECUTION_TASK_STATE_CHANGE
+        timestamp: 1613578575834
+        taskId: 42
+        newState: FINISHED
+    ExecutionTaskState:
+      type: string
+      description: Possible states of an execution task
+      enum:
+        - DELETED
+        - BLOCKED
+        - WAITING
+        - RUNNING
+        - FINISHED
+        - ERROR
+    WebhookReleaseStateChangedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            releaseId:
+              type: integer
+              format: int64
+              description: ID of the release that has changed
+              example: 42
+            newState:
+              $ref: '#/components/schemas/ReleaseState'
+            eventType:
+              const: RELEASE_STATE_CHANGE
+            releaseDType:
+              $ref: '#/components/schemas/ReleaseDType'
+            name:
+              type: string
+            path:
+              type: string
+              description: >
+                Path consisting of the names of all ancestor release folders (if
+                existing) and the name of the changed release component.
+
+                If no ancestor release folders exist, this is equal to the name.
+
+                Separator: /
+            pathSegments:
+              type: array
+              items:
+                type: string
+              description: >
+                The names of all ancestor release folders (if existing) and the
+                name of the changed release component.
+          required:
+            - releaseId
+            - newState
+            - releaseDType
+            - name
+            - path
+            - pathSegments
+      example:
+        eventType: RELEASE_STATE_CHANGE
+        timestamp: 1613578575834
+        releaseId: 42
+        newState: LOCKED
+        releaseDType: RELEASEFOLDER
+        name: SafetyCriticalTests
+        path: AcceptanceTests/SafetyCriticalTests
+        pathSegments:
+          - AcceptanceTests
+          - SafetyCriticalTests
+    ReleaseState:
+      type: string
+      description: |
+        Types of the release state change, can be one of:
+         * "CREATED" - the release was created
+         * "DELETED" - the release was deleted
+         * "LOCKED" - the release was locked
+         * "UNLOCKED" - the release was unlocked
+         * "FULLY_COVERED" - the release is 100 per cent covered (there will be no event if the release is no longer fully covered)
+      enum:
+        - CREATED
+        - DELETED
+        - LOCKED
+        - UNLOCKED
+        - FULLY_COVERED
+    ReleaseDType:
+      type: string
+      description: |
+        Type of a release:
+         * "RELEASE" - a release was changed
+         * "RELEASEFOLDER" - a release folder was changed
+      enum:
+        - RELEASE
+        - RELEASEFOLDER
+    WebhookQGateStateChangedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            qGatePlanKey:
+              type: string
+              description: key of the Q-gate plan to which the changed Q-gate belongs
+              example: HOMOLOGATION-42
+            qGateName:
+              type: string
+              description: name of the changed Q-gate
+              example: Safety test
+            newState:
+              $ref: '#/components/schemas/QGateState'
+              description: the new state of the changed Q-gate
+            eventType:
+              const: Q_GATE_STATE_CHANGED
+          required:
+            - qGatePlanKey
+            - qGateName
+            - newState
+      example:
+        eventType: Q_GATE_STATE_CHANGED
+        timestamp: 1706881094711
+        qGatePlanKey: HOMOLOGATION-42
+        qGateName: Safety test
+        newState: PASSED
+    QGateState:
+      type: string
+      description: |
+        States that a Q-gate can assume, can be one of:
+         * "UNDEFINED" - the Q-gate is not yet determined, initial state
+         * "STOPPED" - the Q-gate has failed
+         * "PASSED" - the Q-gate was passed successfully
+         * "IN_PROGRESS" - the Q-gates preconditions are met, actions related to the Q-gate may start
+      enum:
+        - UNDEFINED
+        - STOPPED
+        - PASSED
+        - IN_PROGRESS
+    WebhookReviewCreatedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            tceId:
+              type: integer
+              format: int64
+              description: ID of the test case execution a review is created for
+              example: 1234
+            reviewId:
+              type: integer
+              format: int64
+              description: ID of the review created
+              example: 42
+            eventType:
+              const: REVIEW_CREATED
+          required:
+            - tceId
+            - reviewId
+      example:
+        eventType: REVIEW_CREATED
+        timestamp: '1613578575834'
+        tceId: 1234
+        reviewId: 42
+    WebhookExportReportFilterEvent:
+      description: >
+        This event is sent to the webhook, if the 'Export report filter to
+        Webhook' Button in the report filter GUI is
+
+        clicked. It contains a list of selected test case execution IDs, which
+        can be used to get more information.
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            testCaseIds:
+              type: array
+              description: Array of test case executions IDs of the report filter
+              items:
+                type: integer
+                format: int64
+            eventType:
+              const: EXPORT_TEST_CASE_REPORTS
+      example:
+        eventType: EXPORT_TEST_CASE_REPORTS
+        timestamp: 1613578575834
+        testCaseIds:
+          - 1234
+          - 5678
+    WebhookAtxReportUploadedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            atxId:
+              type: integer
+              format: int64
+              description: ID of the ATX report uploaded
+              example: 42
+            eventType:
+              const: REPORT_UPLOAD
+          required:
+            - atxId
+      example:
+        eventType: REPORT_UPLOAD
+        timestamp: 1613578575834
+        atxId: 42
+    WebhookCoverageFilterDefinitionChangedEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            filterDefinitionUUID:
+              type: string
+              format: uuid
+              description: UUID of the coverage filter definition that has changed
+              example: 123e4567-e89b-12d3-a456-556642440000
+            newState:
+              $ref: '#/components/schemas/CoverageFilterDefinitionState'
+            eventType:
+              const: COVERAGE_FILTERDEFINITION_CHANGE
+          required:
+            - filterDefinitionUUID
+            - newState
+      example:
+        eventType: COVERAGE_FILTERDEFINITION_CHANGE
+        timestamp: 1613578575834
+        filterDefinitionUUID: 123e4567-e89b-12d3-a456-556642440000
+        newState: CREATED
+    CoverageFilterDefinitionState:
+      type: string
+      description: Possible states of a coverage filter definition
+      enum:
+        - CREATED
+        - UPDATED
+        - DELETED
+    WebhookExportPdfWebhookEvent:
+      allOf:
+        - $ref: '#/components/schemas/WebhookEvent'
+        - type: object
+          properties:
+            originUrl:
+              type: string
+              format: uri
+            reportDesignConfig:
+              type: string
+            parameters:
+              type: object
+            taskId:
+              type: string
+            downloadUrl:
+              type: string
+              format: uri
+            eventType:
+              const: EXPORT_PDF
+      example:
+        timestamp: 1613578575834
+        originUrl: >-
+          http://localhost:8085/reports?dateFrom=1690374420000&dateTo=1690979279999
+        reportDesignConfig: Default Test Summary Report 1.6.0 (2021-12-08)
+        parameters:
+          reportAuthor: John Doe
+          reportIdentifier: Current test progress
+          includeLog: true
+        taskId: b8d91e82-a0b8-4333-955f-ab5169e5de0a
+        downloadUrl: >-
+          http://localhost:8085/api/download-report/b8d91e82-a0b8-4333-955f-ab5169e5de0a
+        eventType: EXPORT_PDF
+  parameters:
+    projectId:
+      in: query
+      name: projectId
+      required: true
+      schema:
+        type: integer
+        default: 1
+      description: ID of the test.guide project
+    webhookId:
+      in: path
+      name: webhookId
+      required: true
+      schema:
+        type: integer
+        format: int64
+        default: 1
+      description: ID of the requested webhook
+    eventType:
+      in: query
+      name: eventType
+      required: false
+      schema:
+        $ref: '#/components/schemas/WebhookEventTypeId'
+      description: Event type of the requested webhook
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: TestGuide-AuthKey
+      in: header
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

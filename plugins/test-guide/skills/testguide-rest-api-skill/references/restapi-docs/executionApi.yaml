@@ -1,0 +1,4584 @@
+openapi: 3.0.2
+info:
+  title: test.guide Execution API
+  description: API for accessing execution functionality of test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 2.61.0
+servers:
+  - url: /api/v2/execution
+    description: this test.guide server
+  - url: /{context-path}/api/v2/execution
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/v2/execution'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+
+  /task:
+    post:
+      tags:
+        - execution tasks
+      summary: Create an execution task. If a start date or a cronExpression is given a job is created.
+      description: |
+        - If no "startDate" and no "cronExpression" are given, then a normal execution task will be created and the task ID will be returned.
+        - If a "startDate" but no "cronExpression" is given, then a job for creating an execution task in the future will be created and its job ID will be returned.
+        - If a "startDate" and a "cronExpression" are given, then a job for a repetitive execution task will be created and its job ID will be returned.
+        - If no "startDate" but a "cronExpression" is given, then a job for a repetitive execution task with direct first execution will be created and its job ID will be returned.
+        - Additionally if a repetitive execution task is created (by specifying the "cronExpression" parameter), the "checkLastExecution" parameter can be set to true.
+        In this case the job will only create a new execution task if the last execution task created by this job has already finished its execution.
+      operationId: post-bundle
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/cronExpression'
+        - $ref: '#/components/parameters/cronTimeZone'
+        - $ref: '#/components/parameters/checkLastExecution'
+      requestBody:
+        description: Bundle description for the execution task.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionTask'
+      responses:
+        '200':
+          description: |
+            Execution task successfully created.
+            If no cronExpression or start date has been given, the ID of the newly created task is returned.
+            Otherwise the ID of the generated job is returned.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/CreateTaskResponse'
+        '400':
+          description: The bundle provided invalid.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      tags:
+        - execution tasks
+      summary: Get all execution tasks of a project.
+      operationId: get-tasks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskFields'
+        - $ref: '#/components/parameters/sortExecutionTask'
+        - $ref: '#/components/parameters/ascending'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: List of all tasks in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionTask'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /task/filter:
+    post:
+      tags:
+        - execution tasks
+      summary: Search for execution tasks using a filter.
+      operationId: filter-tasks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskFields'
+        - $ref: '#/components/parameters/sortExecutionTask'
+        - $ref: '#/components/parameters/ascending'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      requestBody:
+        description: Execution task filter.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionTaskFilter'
+      responses:
+        '200':
+          description: Return the matching execution tasks.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExecutionTask'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /task/{taskId}:
+    get:
+      tags:
+        - execution tasks
+      summary: Get an execution task.
+      operationId: get-task
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskId'
+        - $ref: '#/components/parameters/taskFields'
+      responses:
+        '200':
+          description: The requested execution task.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExecutionTask'
+        '404':
+          description: The taskId is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - execution tasks
+      summary: Delete an execution task.
+      operationId: delete-task
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskId'
+      responses:
+        '204':
+          description: The execution task was successfully deleted.
+        '404':
+          description: The taskId is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    patch:
+      tags:
+        - execution tasks
+      summary: Update an existing execution task. Partial task objects can be passed and only the included fields are updated.
+      operationId: update-task
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskId'
+      requestBody:
+        description: Bundle description for the execution task.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionTaskPatch'
+      responses:
+        '204':
+          description: Successfully updated the execution task.
+        '400':
+          description: The provided property of the task cannot be updated.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: The taskId is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: The task can not be updated anymore because it is running or finished.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /task/{taskId}/abort:
+    put:
+      tags:
+        - execution tasks
+      summary: |
+        Aborts the execution task.
+      description: |
+        Aborts the execution task.
+        If the task is currently running, an abort request is saved and the executing resource adapter may eventually abort the task.
+        If the task is currently in one of the states WAITING or BLOCKED, the tasks state will be set to ERROR and the task will be annotated with an errorMessage.
+        Aborting a task in other states than RUNNING, WAITING or BLOCKED is not allowed and will produce an error response.
+      operationId: abortTask
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskId'
+      requestBody:
+        description: Type of abort.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbortRequest'
+      responses:
+        '202':
+          description: The abort was successfully requested. The task is still running and will be aborted eventually.
+        '204':
+          description: Successfully updated the execution task.
+        '400':
+          description: The state of the task does not allow to be aborted or the execution task was already aborted.
+        '404':
+          description: The task ID is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook:
+    post:
+      tags:
+        - playbooks
+      summary: Upload a new playbook.
+      description: |
+        Creates a new playbook with a name and a revision as unique key.
+        The name is taken from the playbook.
+        The revision is an upcounting number in association with the playbooks name.
+        Created playbooks are immutable.
+        Additionally each playbook has a unique ID.
+
+        Playbooks that make use of ecu.test steps require ecu.test 2020.4 or newer for their execution.
+      operationId: post-playbook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookFolder'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Playbook'
+      responses:
+        '200':
+          description: Playbook was successfully stored. Returns the id of the stored playbook.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/PlaybookResponse'
+        '400':
+          description: The provided playbook is invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      tags:
+        - playbooks
+      summary: Get all playbooks of a project.
+      operationId: get-playbooks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookName'
+        - $ref: '#/components/parameters/playbookRevision'
+        - $ref: '#/components/parameters/sortPlaybook'
+        - $ref: '#/components/parameters/ascending'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: List of all playbooks in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Playbook'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - playbooks
+      summary: Delete all revisions of a playbook by its name.
+      operationId: delete-playbook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/requiredPlaybookName'
+        - $ref: '#/components/parameters/playbookFolder'
+      responses:
+        '204':
+          description: The playbook was successfully deleted.
+        '404':
+          description: The playbook name is not found.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/filter:
+    post:
+      tags:
+        - playbooks
+      summary: Search for playbooks using a filter.
+      operationId: filter-playbooks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/sortPlaybook'
+        - $ref: '#/components/parameters/ascending'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      requestBody:
+        description: Playbook filter.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaybookFilter'
+      responses:
+        '200':
+          description: Return the matching playbooks.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Playbook'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/latest:
+    get:
+      tags:
+        - playbooks
+      summary: Get all playbooks with latest revision of a project.
+      operationId: get-playbooks-latest
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookNameWithWildcards'
+        - $ref: '#/components/parameters/sortPlaybook'
+        - $ref: '#/components/parameters/ascending'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: List of all playbooks with latest revision in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Playbook'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/{playbookId}:
+    get:
+      tags:
+        - playbooks
+      summary: Get a playbook.
+      operationId: get-playbook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookId'
+      responses:
+        '200':
+          description: List of all playbooks in the given project.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Playbook'
+        '404':
+          description: The playbookId is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/{playbookId}/move:
+    put:
+      tags:
+        - playbooks
+      summary: Moves a playbook to another folder.
+      description: |
+        Although only one playbook ID is specified the whole playbook history (i.e. all revisions of this playbook) will 
+        be moved to the specified folder.
+      operationId: move-playbook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookId'
+      requestBody:
+        description: The target folder to move the playbook to.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaybookMoveRequest'
+      responses:
+        '204':
+          description: |
+            The playbook was moved to the specified folder successfully.
+        '404':
+          description: |
+            The specified folder does not exist in this project.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: |
+            A playbook with the name of the playbook to move already exists in the target folder.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/{playbookId}/execute:
+    post:
+      tags:
+        - playbooks
+      summary: Execute a playbook. This will create execution tasks or a project job.
+      description: |
+        - If no "startDate" and no "cronExpression" are given, then execution tasks are created from the playbook.
+        - If a "startDate" but no "cronExpression" is given, then a job for creating execution tasks in the future will be 
+        created and its job ID will be returned.
+        - If a "startDate" and a "cronExpression" are given, then a job for a repetitive playbook execution will be created 
+        and its job ID will be returned.
+        - If no "startDate" but a "cronExpression" is given, then a job for a repetitive playbook execution with direct first 
+        execution will be created and its job ID will be returned.
+        - Additionally if a repetitive execution task is created (by specifying the "cronExpression" parameter), the 
+        "checkLastExecution" parameter can be set to true.
+        In this case the job will only create new execution tasks if the last execution tasks created by this job are 
+        already terminated.
+        
+        (Attention: The generated job will always execute the latest persisted version of the corresponding 
+        playbook. This may not match the specified playbookId.)
+      operationId: execute-playbook
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookId'
+        - $ref: '#/components/parameters/startDate'
+        - $ref: '#/components/parameters/cronExpression'
+        - $ref: '#/components/parameters/cronTimeZone'
+        - $ref: '#/components/parameters/checkLastExecution'
+      requestBody:
+        description: Description for the playbook.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaybookExecutionRequest'
+      responses:
+        '200':
+          description: |
+            Execution tasks successfully created.
+            If no cronExpression or start date has been given, the IDs of the newly created tasks are returned.
+            Otherwise the ID of the generated job is returned.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExecutePlaybookResponse'
+        '404':
+          description: The playbook ID is not found or invalid.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/folder:
+    get:
+      tags:
+        - playbook folders
+      operationId: get-folders
+      summary: Return all playbook folders of the project.
+      description: |
+        Returns all playbook folders of the specified project. 
+        If the parameter parentId is passed, only the direct children of this folder will be returned.
+        The root folder has ID 0.
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookFolderParentId'
+        - $ref: '#/components/parameters/sortPlaybookFolder'
+        - $ref: '#/components/parameters/ascending'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Successfully fetched all playbook folders.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaybookFolderInfo'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    post:
+      tags:
+        - playbook folders
+      operationId: create-folder
+      summary: Create a new playbook folder.
+      description: |
+        Creates a new playbook folder inside the specified parent.
+        The name of the folder must be unique among the children with the same parent.
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The name and the parent of the new playbook folder.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaybookFolder'
+      responses:
+        '200':
+          description: The ID of the created playbook folder.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaybookFolderPostResponse'
+        '404':
+          description: The parent playbook folder does not exist.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: A folder with this name already exists in the parent folder.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /playbook/folder/{folderId}:
+    get:
+      tags:
+        - playbook folders
+      operationId: get-folder
+      summary: Return a playbook folder.
+      description: |
+        Returns the playbook folder with the specified ID.
+        Use /playbook/folder?parentId={folderId} to fetch the direct children of this folder.
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookFolderId'
+      responses:
+        '200':
+          description: Returns the playbook folder information.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaybookFolderInfo'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      tags:
+        - playbook folders
+      operationId: update-folder
+      summary: Update a playbook folder.
+      description: |
+        Renames and/or moves the playbook folder.
+        The name of the folder must be unique among the children with the same parent.
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookFolderId'
+      requestBody:
+        description: The new values for the name and the parent ID of the playbook folder to be updated.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaybookFolder'
+      responses:
+        '204':
+          description: The playbook folder was successfully updated
+        '400':
+          description: The request is invalid. The root folder (ID 0) for example cannot be updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: In the specified new parent folder already exists a playbook folder with the specified name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - playbook folders
+      operationId: delete-folder
+      summary: Delete a playbook folder.
+      description: |
+        Deletes a playbook folder recursively.
+        
+        **Attention:** this will also remove all playbooks associated with any of the playbook folders to be removed.
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/playbookFolderId'
+      responses:
+        '204':
+          description: The playbook folder was successfully deleted.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /variable:
+    post:
+      tags:
+        - variables
+      summary: Create a new public variable for test execution.
+      operationId: post-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Definition of the public variable.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicVariable'
+      responses:
+        '204':
+          description: The public variable was successfully created.
+        '409':
+          description: A public variable with the given label already exists.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      tags:
+        - variables
+      summary: Get all public variables of the execution context of a project.
+      operationId: get-variables
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: List of all public variables in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicVariable'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /variable/{label}:
+    get:
+      tags:
+        - variables
+      summary: Get the public variable of the execution context with the given label.
+      operationId: get-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/variableLabel'
+      responses:
+        '200':
+          description: Public variable with the given label.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/PublicVariable'
+        '404':
+          description: A public variable with the given label does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      tags:
+        - variables
+      summary: Update the public variable of the execution context with the given label.
+      description: |
+        The label itself can also be changed.
+        To do this, please specify the old label as the query parameter and the new label in the JSON body.
+      operationId: update-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/variableLabel'
+      requestBody:
+        description: Description for the public variable.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublicVariable'
+      responses:
+        '204':
+          description: The public variable was successfully updated.
+        '404':
+          description: A public variable with the given old label does not exist.
+        '409':
+          description: A public variable with the given new label already exists.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - variables
+      summary: Delete the public variable of the execution context with the given label.
+      operationId: delete-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/variableLabel'
+      responses:
+        '204':
+          description: The public variable was successfully deleted.
+        '404':
+          description: A public variable with the given label does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /secret:
+    post:
+      tags:
+        - variables
+      summary: Create a new secret variable for test execution.
+      operationId: post-secret-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Definition of the secret variable.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretVariable'
+      responses:
+        '204':
+          description: The secret variable was successfully created.
+        '409':
+          description: A secret variable with the given label already exists.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    get:
+      tags:
+        - variables
+      summary: Get all secret variables of the execution context of a project.
+      operationId: get-secret-variables
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: List of all secret variables in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SecretVariableInfo'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /secret/{label}:
+    get:
+      tags:
+        - variables
+      summary: Get the secret variable of the execution context with the given label.
+      operationId: get-secret-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/variableLabel'
+      responses:
+        '200':
+          description: Secret variable with the given label.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/SecretVariableInfo'
+        '404':
+          description: A secret variable with the given label does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    put:
+      tags:
+        - variables
+      summary: Update the secret variable of the execution context with the given label.
+      description: |
+        The label itself can also be changed.
+        To do this, please specify the old label as the query parameter and the new label in the JSON body.
+      operationId: update-secret-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/variableLabel'
+      requestBody:
+        description: Description for the secret variable.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretVariable'
+      responses:
+        '204':
+          description: The secret variable was successfully updated.
+        '404':
+          description: A secret variable with the given old label does not exist.
+        '409':
+          description: A secret variable with the given new label already exists.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    delete:
+      tags:
+        - variables
+      summary: Delete the secret variable of the execution context with the given label.
+      operationId: delete-secret-variable
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/variableLabel'
+      responses:
+        '204':
+          description: The secret variable was successfully deleted.
+        '404':
+          description: A secret variable with the given label does not exist.
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+
+  /configuration/logArchive:
+    get:
+      tags:
+        - configuration
+      summary: Get log archive configuration.
+      operationId: get-log-archive-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Return current log archive configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/LogArchiveConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    patch:
+      tags:
+        - configuration
+      summary: Edit log archive configuration.
+      operationId: patch-log-archive-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Fields to patch on log archive configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogArchiveConfiguration'
+      responses:
+        '200':
+          description: Return current log archive configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/LogArchiveConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /configuration/executionTaskPriority:
+    get:
+      tags:
+        - configuration
+      summary: Get configuration of low  and high priority execution tasks.
+      operationId: get-priority-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Return current low and high priority execution task configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExecutionTaskPriorityConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    patch:
+      tags:
+        - configuration
+      summary: |
+        Edit configuration of low and high priority execution tasks.
+        
+        This feature is available as development preview.
+      operationId: patch-priority-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Fields to patch on log archive configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionTaskPriorityConfiguration'
+      responses:
+        '200':
+          description: Return current configuration of low and high priority execution tasks.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExecutionTaskPriorityConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /configuration/downstreamAnalysis:
+    get:
+      tags:
+        - configuration
+      summary: Get downstream analysis configuration.
+      operationId: get-downstream-analysis-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Return current downstream analysis configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/DownstreamAnalysisConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    patch:
+      tags:
+        - configuration
+      summary: Edit downstream analysis configuration.
+      operationId: patch-downstream-analysis-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Fields to patch on downstream analysis configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DownstreamAnalysisConfiguration'
+      responses:
+        '200':
+          description: Return current downstream analysis configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/DownstreamAnalysisConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /configuration/blockedByAppointment:
+    get:
+      tags:
+        - configuration
+      summary: Get configuration of the interplay between appointments and the execution of execution tasks.
+      operationId: get-blocked-by-appointment-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Return current 'blocked by appointment' configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/BlockedByAppointmentConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    patch:
+      tags:
+        - configuration
+      summary: Edit 'blocked by appointment' configuration.
+      operationId: patch-blocked-by-appointment-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Fields to patch on 'blocked by appointment' configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockedByAppointmentConfiguration'
+      responses:
+        '200':
+          description: Return current 'blocked by appointment' configuration.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/BlockedByAppointmentConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+  /configuration/executionTaskRemoveRule:
+    get:
+      tags:
+        - configuration
+      summary: Get remove rule for execution tasks.
+      operationId: get-execution-task-remove-rule-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Return current remove rule for execution tasks.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExecutionTaskRemoveRuleConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+    patch:
+      tags:
+        - configuration
+      summary: Edit remove rule for execution tasks.
+      operationId: patch-execution-task-remove-rule-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Fields to patch on remove rule for execution tasks.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecutionTaskRemoveRuleConfiguration'
+      responses:
+        '200':
+          description: Return current remove rule for execution tasks.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExecutionTaskRemoveRuleConfiguration'
+        default:
+          $ref: '#/components/responses/GeneralError'
+
+components:
+  parameters:
+    projectId:
+      in: query
+      name: projectId
+      required: true
+      schema:
+        type: integer
+        default: 1
+      description: ID of the test.guide project the execution data is requested for
+
+    startDate:
+      in: query
+      name: startDate
+      required: false
+      schema:
+        type: string
+        format: date-time
+      description: Start date and time of the execution for a delayed or recurring execution in RFC 3339 format (ISO 8601 compatible)
+
+    cronExpression:
+      in: query
+      name: cronExpression
+      required: false
+      schema:
+        type: string
+        maxLength: 1024
+        minLength: 1
+      description: |
+        Cron expression for a recurring execution in the UNIX cron format.
+        Example: '0 * * * *' will execute once every full hour.
+        
+        More information about the UNIX cron format can be found 
+        [here](<https://man7.org/linux/man-pages/man5/crontab.5.html>).
+
+    cronTimeZone:
+      in: query
+      name: cronTimeZone
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+        minLength: 1
+      description: |
+        Time zone ID of the cron expression. Default value is 'UTC'.
+        
+        Possible time zone IDs can be:
+        * time zone abbreviations such as 'CET' (Central European Time)
+        * time zone abbreviations with time shift such as 'UTC+2', 'UTC+02' or 'UTC+02:00'
+        * region-based time zone IDs such as 'Europe/Berlin'
+
+    checkLastExecution:
+      in: query
+      name: checkLastExecution
+      required: false
+      schema:
+        type: boolean
+        default: true
+      description: |
+        Check if the execution task lastly created by a recurring execution was finished.
+        If not do not start a new execution.
+
+    taskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+        example: 1
+      description: ID of the requested task
+
+    playbookId:
+      in: path
+      name: playbookId
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+        example: 1
+      description: ID of the playbook in test.guide
+
+    variableLabel:
+      in: path
+      name: label
+      required: true
+      schema:
+        type: string
+        default: label
+      description: Label of the variable
+
+    playbookName:
+      in: query
+      name: playbookName
+      required: false
+      schema:
+        type: string
+      description: Name of the playbook in test.guide
+
+    playbookNameWithWildcards:
+      in: query
+      name: playbookName
+      required: false
+      schema:
+        type: string
+      description: |
+        Name of the playbook in test.guide. 
+        May contain the following wildcard characters:
+        
+        * ? (to match any single character),
+        * \* (to match zero or more of any characters)
+
+    requiredPlaybookName:
+      in: query
+      name: playbookName
+      required: true
+      schema:
+        type: string
+      description: Name of the playbook in test.guide
+
+    playbookRevision:
+      in: query
+      name: playbookRevision
+      required: false
+      schema:
+        type: integer
+      description: Revision number of the playbook in test.guide
+
+    playbookFolder:
+      in: query
+      name: folder
+      schema:
+        type: string
+        minLength: 1
+        default: /
+      description: Playbook folder path
+
+    playbookFolderId:
+      in: path
+      name: folderId
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+      description: The ID of the playbook folder
+
+    playbookFolderParentId:
+      in: query
+      name: parentId
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+      description: The ID of the playbook folder to fetch the children for
+
+    sortExecutionTask:
+      in: query
+      name: sort
+      required: false
+      schema:
+        $ref: '#/components/schemas/ExecutionTaskSort'
+      description: Field used to sort tasks
+
+    sortPlaybook:
+      in: query
+      name: sort
+      required: false
+      schema:
+        $ref: '#/components/schemas/PlaybookSort'
+      description: Field used to sort playbooks
+
+    sortPlaybookFolder:
+      in: query
+      name: sort
+      required: false
+      schema:
+        $ref: '#/components/schemas/PlaybookFolderSort'
+      description: Field used to sort playbook folders
+
+    ascending:
+      in: query
+      name: ascending
+      required: false
+      schema:
+        $ref: '#/components/schemas/SortDirection'
+      description: Sort in ascending or descending order
+
+    offset:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        default: 0
+      description: First element to return
+
+    limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        default: 25
+        maximum: 1000
+      description: Maximum number of elements to return (maximum is 1000)
+
+    taskFields:
+      in: query
+      name: fields
+      required: false
+      style: form  # comma separated
+      explode: false
+      schema:
+        type: array
+        minLength: 1
+        uniqueItems: true
+        items:
+          $ref: '#/components/schemas/ExecutionTaskField'
+      description: Requested fields of execution task
+
+  schemas:
+
+    AbortRequest:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/ExecutionTaskAbortRequest'
+      required:
+        - type
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    CreateTaskResponse:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+          example: 1
+          description: ID of the generated task
+        jobId:
+          type: integer
+          format: int64
+          example: 1
+          description: ID of the generated job
+
+    ExecutionTask:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+          description: Identifier
+          example: 1
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the execution task
+          example: 'My 1st execution task'
+        uploadUser:
+          $ref: '#/components/schemas/ExecutionTaskUploadUser'
+        projectId:
+          type: integer
+          description: ID of the test.guide project
+          example: 1
+          readOnly: true
+        creationDate:
+          type: string
+          format: date-time
+          description: Time at which the task was created in RFC 3339 format (ISO 8601 compatible)
+          example: '2020-02-19T12:34:56.789Z'
+          readOnly: true
+        startDate:
+          type: string
+          format: date-time
+          description: Time at which the task started in RFC 3339 format (ISO 8601 compatible)
+          example: '2020-02-19T12:34:67.890Z'
+          readOnly: true
+        endDate:
+          type: string
+          format: date-time
+          description: Time at which the task completed in RFC 3339 format (ISO 8601 compatible)
+          example: '2020-02-20T12:43:21.012Z'
+          readOnly: true
+        state:
+          $ref: '#/components/schemas/ExecutionTaskState'
+        abortRequest:
+          $ref: '#/components/schemas/ExecutionTaskAbortRequest'
+        stateInfo:
+          $ref: '#/components/schemas/ReadOnlyExecutionTaskStateInfo'
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 50
+          description: Priority of the execution task
+          example: 42
+        source:
+          $ref: '#/components/schemas/ExecutionTaskSource'
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceDependency'
+          default: [ ]
+        xilConfigRequirements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Requirement'
+          default: [ ]
+        matchingXils:
+          type: array
+          readOnly: true
+          nullable: true
+          items:
+            $ref: '#/components/schemas/XilResource'
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionTaskParameter'
+          default: [ ]
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionTaskAttribute'
+          default: [ ]
+        playbook:
+          $ref: '#/components/schemas/ExecutionTaskPlaybook'
+        additionalSettings:
+          $ref: '#/components/schemas/AdditionalSettings'
+        aggregatedVerdict:
+          type: string
+          enum:
+            - NONE
+            - SUCCESS
+            - INCONCLUSIVE
+            - FAILED
+            - ERROR
+          readOnly: true
+      required:
+        - source
+
+    ExecutionTaskPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          description: New human-readable name of the execution task
+          example: 'My 1st execution task'
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: New priority of the execution task
+          example: 42
+        attributes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ExecutionTaskAttribute'
+
+    ExecutionTaskUploadUser:
+      type: object
+      description: Information about the upload user of the execution task.
+      readOnly: true
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: ID of the uploading user
+          example: 1
+        userName:
+          type: string
+          description: Name of the uploading user
+          example: 'TestUser'
+      required:
+        - userId
+        - userName
+
+    ExecutionTaskState:
+      type: string
+      readOnly: true
+      enum:
+        - UNKNOWN
+        - BLOCKED
+        - WAITING
+        - RUNNING
+        - FINISHED
+        - ERROR
+      description: |
+        State of the execution task
+        * UNKNOWN: Unknown state
+        * BLOCKED: No matching test resource exists
+        * WAITING: No available test resource exists
+        * RUNNING: Task is running
+        * FINISHED: Task finished successfully
+        * ERROR: Task finished with error
+
+    ExecutionTaskAbortRequest:
+      type: string
+      enum:
+        - ABORT_WITH_TEARDOWN
+        - ABORT_WITHOUT_TEARDOWN
+      description: |
+        If the execution task was aborted before or during the execution, the abort request describes the behavior of 
+        the task once the abort is triggered:
+        * ABORT_WITH_TEARDOWN: The current setup or testcase step will be aborted. Teardown steps will be executed 
+        completely.
+        * ABORT_WITHOUT_TEARDOWN: The whole playbook execution will be aborted. Teardown steps will not be executed.
+
+    ExecutionTaskStateInfo:
+      type: object
+      description: Additional information about the execution task state.
+      properties:
+        errorMessage:
+          type: string
+          maxLength: 1024
+          description: Error reason for failed execution task
+          example: 'Execution aborted by user'
+      required:
+        - errorMessage
+
+    ReadOnlyExecutionTaskStateInfo:
+      allOf:
+        - $ref: '#/components/schemas/ExecutionTaskStateInfo'
+        - type: object
+      readOnly: true
+
+    ExecutionTaskSource:
+      type: object
+      description: Source of the execution task.
+      properties:
+        sourceType:
+          type: string
+          enum:
+            - location
+            - artifact
+            - artifactFilter
+            - scm
+          description: |
+            Type of the execution bundle source, can be one of:
+            * "location"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "location",
+                "path": "\\\\network\\bundles\\mybundle.zip"
+              }
+              ```
+
+            * "artifact"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "artifact",
+                "artifactId": "depository1-12345"
+              }
+              ```
+            * "artifactFilter"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "artifactFilter",
+                "filterId": 3
+              }
+              ```
+
+            * "scm"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "scm",
+                "scmLabel": "MyGit",
+                "scmCommit": "17a5e88542a201da943b331c8c4d41695843c319"
+              }
+              ```
+            For detailed descriptions see section "Schemas"
+        relativeWorkspacePath:
+          type: string
+          maxLength: 255
+          description: |
+            Optional relative path to workspace folder inside the source.
+            Use this to select a specific workspace when the source contains multiple workspaces
+            or the workspace is located in a subfolder of the source.
+
+            The relative path can not be used with package/project files from the artifact management
+            or PRZ files.
+
+            Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped and
+            works for both Linux and Windows.
+            
+            Variables (`${VARIABLE}`) are expanded.
+          example: 'TestDrive123/Workspace'
+      discriminator:
+        propertyName: sourceType
+        mapping:
+          location: '#/components/schemas/ExecutionTaskLocation'
+          artifact: '#/components/schemas/ExecutionTaskArtifact'
+          artifactFilter: "#/components/schemas/ExecutionTaskArtifactFilter"
+          scm: '#/components/schemas/ExecutionTaskScm'
+      required:
+        - sourceType
+      example:
+        sourceType: 'scm'
+        scmLabel: 'MyGit'
+        scmCommit: '17a5e88542a201da943b331c8c4d41695843c319'
+        relativeWorkspacePath: 'TestDrive123/Workspace'
+
+    ExecutionTaskLocation:
+      description: Source of the execution task as a local accessible path, for example on a network drive.
+      allOf:
+        - $ref: '#/components/schemas/ExecutionTaskSource'
+        - type: object
+          properties:
+            path:
+              $ref: '#/components/schemas/LocationPath'
+          required:
+            - path
+
+    ExecutionTaskArtifact:
+      description: Source of the execution task as an artifact in the test.guide artifact management.
+      allOf:
+        - $ref: '#/components/schemas/ExecutionTaskSource'
+        - type: object
+          properties:
+            artifactId:
+              $ref: '#/components/schemas/ArtifactId'
+          required:
+            - artifactId
+
+    ExecutionTaskArtifactFilter:
+      description: |
+        Workspace source of the execution task as an artifact filter in the test.guide artifact management.
+
+        The filter is evaluated to select the most recently created matching artifact as source of the execution task.
+
+      allOf:
+        - $ref: '#/components/schemas/ExecutionTaskSource'
+        - type: object
+          properties:
+            filterId:
+              $ref: '#/components/schemas/ArtifactFilterId'
+          required:
+            - filterId
+
+    ExecutionTaskScm:
+      description: Source of the execution task as a repository managed by a source control management tool.
+      allOf:
+        - $ref: '#/components/schemas/ExecutionTaskSource'
+        - type: object
+          properties:
+            scmLabel:
+              $ref: '#/components/schemas/ScmLabel'
+            scmUrl:
+              $ref: '#/components/schemas/ScmUrl'
+            scmCommit:
+              $ref: '#/components/schemas/ScmCommit'
+            sparseCheckoutPath:
+              type: string
+              maxLength: 255
+              description: |
+                Optional path to a folder that should be checked out.
+                Use this if you do not want to checkout the whole SCM repository but only a specific subfolder.
+                
+                Variables (`${VARIABLE}`) are expanded.
+
+                Only allowed for SVN repositories.
+              example: 'path/to/repo'
+            settings:
+              $ref: '#/components/schemas/ScmSettings'
+
+    Requirement:
+      type: object
+      properties:
+        type:
+          type: string
+          nullable: true
+          description: |
+            Type of an execution task requirement:
+            * "configuration"
+
+              _Example:_
+              ```
+              {
+                "type": "configuration",
+                "label": "Version",
+                "category": "Software",
+                "value": "42",
+                "details": []
+              }
+              ```
+
+             * "or"
+
+              _Example:_
+              ```
+              {
+                "type": "or",
+                "configurations": [
+                  {
+                    "type": "configuration",
+                    "label": "Version",
+                    "category": "Software",
+                    "value": "42"
+                  },
+                  {
+                    "type": "configuration",
+                    "label": "Version",
+                    "category": "OtherSoftware",
+                    "value": "45"
+                  }
+                ]
+              }
+              ```
+              For detailed descriptions see section "Schemas"
+          enum:
+            - configuration
+            - or
+      discriminator:
+        propertyName: type
+        mapping:
+          configuration: '#/components/schemas/XilConfigRequirement'
+          or: '#/components/schemas/OrRequirement'
+      example:
+        type: 'configuration'
+        label: 'Version'
+        category: 'Software'
+        value: '42'
+
+    XilConfigRequirement:
+      allOf:
+        - $ref: '#/components/schemas/Requirement'
+        - type: object
+          description: |
+            Requirement that the execution task makes to the test resource where it is executed.
+            
+            If used in a playbook you may also use variables of the form `${VAR}`.
+            When the execution of the playbook is scheduled you have to provide a parameter named `VAR` for each variable used.
+            The variables will be replaced in the resulting execution tasks.
+          properties:
+            label:
+              type: string
+              description: |
+                label of the configuration, may contain the following wildcard characters:
+                * ? (to match any single character),
+                * \* (to match zero or more of any characters)
+              example: 'Type'
+            category:
+              type: string
+              description: |
+                category of the configuration, may contain the following wildcard characters:
+                * ? (to match any single character),
+                * \* (to match zero or more of any characters)
+              example: 'XIL'
+            value:
+              type: string
+              description: |
+                value of the configuration, may contain the following wildcard characters:
+                * ? (to match any single character),
+                * \* (to match zero or more of any characters)
+              example: 'FAS'
+            details:
+              type: array
+              default: [ ]
+              items:
+                $ref: '#/components/schemas/XilConfigRequirementDetail'
+              example:
+                - label: 'Version'
+                  value: '42'
+          required:
+            - label
+            - category
+            - value
+
+    OrRequirement:
+      allOf:
+        - $ref: '#/components/schemas/Requirement'
+        - type: object
+          description: |
+            Special kind of requirement that the execution task makes to the test resource where it is executed.
+            
+            This requirement encapsulates a set of regular configurations requirements that are going to be or-linked when
+            matching execution tasks to possible test resource machines.
+            This means only a single one of the configurations has to match to a TRM, making all other configuration
+            requirements in the OrRequirement irrelevant for the matching.
+          properties:
+            configurations:
+              type: array
+              nullable: false
+              minItems: 2
+              description: List of XilConfigRequirements that will be or-linked during task matching.
+              items:
+                $ref: '#/components/schemas/XilConfigRequirement'
+          required:
+            - configurations
+
+    XilConfigRequirementDetail:
+      type: object
+      description: Detail of a requirement that the execution task makes to the test resource where it is executed.
+      properties:
+        label:
+          type: string
+          description: |
+            label of the detail configuration, may contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          example: 'Install Date'
+        category:
+          type: string
+          description: |
+            category of the detail configuration, may contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          default: '*'
+        value:
+          type: string
+          description: |
+            value of the detail configuration, may contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          example: '20191030'
+      required:
+        - label
+        - value
+
+    XilResource:
+      type: object
+      description: Test resource where the execution task can be executed.
+      properties:
+        location:
+          type: string
+          description: location of the resource
+          pattern: '^[^/]+/[^/]+/[^/]+$'
+          example: 'TT/Level1/103'
+        testbench:
+          type: string
+          description: test resource of the resource
+          pattern: '^[^/]+$'
+          example: 'TraceTroniCar'
+        machine:
+          type: string
+          description: machine of the resource
+          pattern: '^[^/]+$'
+          example: 'PC1'
+      required:
+        - location
+        - testbench
+        - machine
+
+    ExecutionTaskParameter:
+      type: object
+      description: |
+        User-defined parameter of the execution task. This can be used to find and filter execution tasks.
+        Rerunning an execution task will copy each parameter to the new execution task instance.
+
+        Parameters are also made available for test execution:
+        * as Jenkins pipeline parameter (with Jenkins dispatcher)
+        * as ecu.test constant (with ecu.test dispatcher)
+        * as environment variable in command steps in playbooks (with ecu.test or Generic dispatcher)
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '^(?!TT_)[a-zA-Z][a-zA-Z0-9_]*$'
+          description: Label of the parameter.
+        value:
+          type: string
+          minLength: 1
+          maxLength: 4095
+          description: Value of the parameter.
+      required:
+        - label
+        - value
+      example:
+        label: 'TmsTestSuiteId'
+        value: '42'
+
+    ExecutionTaskAttribute:
+      type: object
+      description: |
+        User-defined attribute of the execution task. This can be used to find and filter execution tasks. Attributes 
+        have to be defined foreach execution task individually and will not be copied on task rerun.
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Label of the attribute.
+        value:
+          type: string
+          minLength: 1
+          maxLength: 4095
+          description: Value of the attribute.
+      required:
+        - label
+        - value
+      example:
+        label: 'ScenarioType'
+        value: 'Offroad'
+
+    ExecutionTaskPlaybook:
+      type: object
+      description: |
+        Playbook of the execution task. This represents a detailed execution plan for the packages, projects and analyses from the execution task source.
+
+        Playbooks require ecu.test 2020.4 or newer.
+      properties:
+        playbookId:
+          type: integer
+          format: int64
+          nullable: true
+          description: |
+            ID of the playbook.
+
+            If specified, this is shown in the test report as constant 'TT_PLAYBOOK_ID'.
+          example: 1
+        playbookRunId:
+          type: integer
+          format: int64
+          nullable: true
+          description: |
+            ID of the playbook run.
+
+            If specified, this is shown in the test report as constant 'TT_PLAYBOOK_RUN_ID'.
+          example: 3
+        playbookHistoryId:
+          type: integer
+          format: int64
+          nullable: true
+          description: |
+            ID of the playbook history.
+
+            If specified, this is shown in the test report as constant 'TT_PLAYBOOK_HISTORY_ID'.
+          example: 5
+        playbookHistoryRevision:
+          type: integer
+          nullable: true
+          description: |
+            Revision of the playbook history.
+            
+            If specified, this is shown in the test report as constant 'TT_PLAYBOOK_HISTORY_REVISION'.
+          example: 2
+        setup:
+          $ref: '#/components/schemas/PlaybookSetup'
+        execution:
+          $ref: '#/components/schemas/PlaybookExecution'
+        teardown:
+          $ref: '#/components/schemas/PlaybookTeardown'
+      required:
+        - execution
+
+    AdditionalSettings:
+      type: object
+      description: Additional settings for task execution.
+      properties:
+        analysisExecutionMode:
+          type: string
+          enum:
+            - sequential
+            - parallel
+            - none
+            - downstream
+          description: |
+            This mode defines how trace analyses are executed:
+            * `sequential`: execute trace analyses after test execution
+            * `parallel`: execute trace analyses in parallel to test execution
+            * `none`: don't execute trace analyses
+            * `downstream`: generate separate execution tasks for trace analyses after test execution
+
+            Analysis execution modes require ecu.test 2021.2 or newer.
+          default: 'sequential'
+        downstreamAnalysisPartitioning:
+          type: string
+          enum:
+            - analysis
+            - testCase
+            - task
+          default: analysis
+          description: |
+            When `analysisExecutionMode=downstream` this value defines how analyses are grouped for execution tasks:
+            * `analysis`: for every analysis an execution task is created
+            * `testCase`: all analyses of a playbook step are grouped into one execution task
+            * `task`: all analyses of the execution task are grouped into one execution task
+        expirationTimeInMinutes:
+          type: integer
+          minimum: 1
+          description: |
+            If specified, the created execution task will be waiting at most the amount of time in minutes before expiring.
+            If the task expires, it will be set to the error state and will no longer be available for execution.
+        issueTrackerTickets:
+          type: array
+          nullable: true
+          items:
+            type: string
+            pattern: '^(http|https)://[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?(:[0-9]{1,5})?(/[^\s]*)?$'
+          example:
+            [ 'https://my.jira.com/browse/Ticket-123','https://my.jira.com/browse/Ticket-124' ]
+          description: If specified, the contained issue tracker tickets will be informed about the state of the execution task.
+        remainingRetriesOnError:
+          type: integer
+          minimum: 0
+          description: If specified, the execution task will be retried if an error occurs. The parameter defines the maximum number of retries.
+
+    ExecutionTaskFilter:
+      type: object
+      description: |
+        Filter for execution tasks.
+
+        Every string (except the execution task states) may contain the following wildcard characters:
+          * ? (to match any single character),
+          * \* (to match zero or more of any characters)
+      properties:
+        taskIds:
+          type: array
+          nullable: true
+          description: Filter for execution task identifiers.
+          items:
+            type: integer
+            format: int64
+            example: 1
+            minimum: 0
+        names:
+          type: array
+          nullable: true
+          description: |
+            Filter for execution task names.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+            example: 'My 1st execution task'
+        uploadUserNames:
+          type: array
+          nullable: true
+          description: |
+            Filter for upload users by name.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+        states:
+          type: array
+          nullable: true
+          description: Filter for execution task states
+          items:
+            $ref: '#/components/schemas/ExecutionTaskState'
+        sourceArtifactIds:
+          type: array
+          nullable: true
+          description: |
+            Filter for workspace sources using any of this artifacts.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+        sourceScmLabels:
+          type: array
+          nullable: true
+          description: |
+            Filter for workspace sources using any of this SCM tool labels.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+        sourceScmCommits:
+          type: array
+          nullable: true
+          description: |
+            Filter for workspace sources using any of this SCM references.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+        sourcePaths:
+          type: array
+          nullable: true
+          description: |
+            Filter for workspace sources using any of this local paths.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+        matchingXils:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example:
+            - 'TT/Level1/*'
+          description: XilResourceIdFilter is deprecated but currently also accepted. Use Strings instead.
+        parameters:
+          type: array
+          nullable: true
+          description: Filter for parameters.
+          items:
+            $ref: '#/components/schemas/ParameterFilter'
+          example: [ { label: 'TmsTestSuiteId', values: [ '12', '23' ] } ]
+        attributes:
+          type: array
+          nullable: true
+          description: Filter for attributes.
+          items:
+            $ref: '#/components/schemas/AttributeFilter'
+          example: [ { label: 'ScenarioType', values: [ 'Offroad', 'Autobahn' ] } ]
+        playbookIds:
+          type: array
+          nullable: true
+          description: Filter for referenced playbooks.
+          items:
+            type: integer
+            format: int64
+            example: 1
+            minimum: 0
+        creationDate:
+          $ref: '#/components/schemas/DateRangeFilter'
+        priority:
+          $ref: '#/components/schemas/PriorityRangeFilter'
+        aggregatedVerdicts:
+          type: array
+          nullable: true
+          description: Filter for aggregated verdicts.
+          items:
+            type: string
+            enum:
+              - NONE
+              - SUCCESS
+              - INCONCLUSIVE
+              - FAILED
+              - ERROR
+              - NO_VERDICT
+            readOnly: true
+        playbookRunIds:
+          type: array
+          nullable: true
+          description: Filter for playbook run identifier.
+          items:
+            type: integer
+            format: int64
+            example: 1
+            minimum: 0
+
+    PlaybookFilter:
+      type: object
+      description: |
+        Filter for playbooks.
+
+        Every string may contain the following wildcard characters:
+          * ? (to match any single character),
+          * \* (to match zero or more of any characters)
+      properties:
+        names:
+          type: array
+          nullable: true
+          description: |
+            Filter for playbook names.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+            example: 'My 1st playbook'
+        folderIds:
+          type: array
+          nullable: true
+          description: |
+            Filter for folder IDs.
+            
+            Available folder IDs may be obtained using the GET /playbook/folder endpoint.
+          items:
+            type: integer
+            format: int64
+            minimum: 0
+        labels:
+          type: array
+          nullable: true
+          description: |
+            Filter for labels.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          items:
+            type: string
+            minLength: 1
+            example: MyLabel
+        allRevisions:
+          description: |
+            Whether to fetch all available playbooks or only the latest revision of a playbook. 
+            Default is only the latest revision.
+          type: boolean
+          nullable: true
+          default: false
+
+    XilResourceIdFilter:
+      type: array
+      nullable: true
+      deprecated: true
+      description: This is deprecated. Use Strings instead.
+      items:
+        type: object
+        properties:
+          location:
+            type: string
+            minLength: 1
+            default: '*'
+            description: |
+              Filter for location of the resource.
+              
+              May contain the following wildcard characters:
+                * ? (to match any single character),
+                * \* (to match zero or more of any characters)
+          testbench:
+            type: string
+            minLength: 1
+            default: '*'
+            description: |
+              Filter for name of the test resource.
+              
+              May contain the following wildcard characters:
+                * ? (to match any single character),
+                * \* (to match zero or more of any characters)
+          machine:
+            type: string
+            minLength: 1
+            default: '*'
+            description: |
+              Filter for machine of the resource.
+              
+              May contain the following wildcard characters:
+                * ? (to match any single character),
+                * \* (to match zero or more of any characters)
+
+    ParameterFilter:
+      type: object
+      required: [ 'label', 'values' ]
+      description: Filter for parameter.
+      properties:
+        label:
+          type: string
+          description: |
+            Filter for parameter names.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+        values:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: |
+            Filter for corresponding parameter values when `label` matches.
+
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+        negated:
+          type: boolean
+          default: false
+          description: Negates this parameter filter.
+
+    AttributeFilter:
+      type: object
+      description: Filter for attributes.
+      properties:
+        label:
+          type: string
+          description: |
+            Filter for attribute names.
+            
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+        values:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: |
+            Filter for corresponding attribute values when `label` matches.
+            
+            May contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+        negated:
+          type: boolean
+          default: false
+          description: Negates this attribute filter.
+      required:
+        - label
+        - values
+
+    DateRangeFilter:
+      type: object
+      description: Filter for a date range.
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: Filter for the start date of a date range in RFC 3339 format (ISO 8601 compatible).
+        to:
+          type: string
+          format: date-time
+          description: Filter for the end date of a date range in RFC 3339 format (ISO 8601 compatible).
+
+    PriorityRangeFilter:
+      type: object
+      description: Filter for the priority range of execution tasks.
+      properties:
+        min:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Filter for the minimum priority of execution tasks.
+          example: 20
+        max:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Filter for the maximum priority of execution tasks.
+          example: 80
+
+    ExecutionTaskField:
+      type: string
+      enum:
+        - taskId
+        - name
+        - uploadUser
+        - projectId
+        - creationDate
+        - startDate
+        - endDate
+        - state
+        - abortRequest
+        - stateInfo
+        - priority
+        - source
+        - dependencies
+        - xilConfigRequirements
+        - matchingXils
+        - parameters
+        - attributes
+        - playbook
+        - additionalSettings
+        - aggregatedVerdict
+      description: Field of execution task to query
+
+    ExecutionTaskSort:
+      type: string
+      enum:
+        - ID
+        - NAME
+        - CREATED
+        - STARTED
+        - FINISHED
+        - PRIORITY
+        - STATE
+      default: NAME
+      description: Sort for field
+
+    ExecutePlaybookResponse:
+      type: object
+      properties:
+        taskIds:
+          type: array
+          nullable: true
+          items:
+            type: integer
+            format: int64
+            example: 1
+          description: IDs of the generated tasks
+        jobId:
+          type: integer
+          format: int64
+          example: 1
+          description: ID of the generated job
+
+    Playbook:
+      type: object
+      properties:
+        playbookId:
+          type: integer
+          format: int64
+          description: |
+            ID of the playbook.
+
+            If specified, this is shown in the test report as constant 'TT_PLAYBOOK_ID'.
+          example: 1
+          readOnly: true
+        uploadInfo:
+          $ref: '#/components/schemas/PlaybookUploadInfo'
+        folder:
+          type: string
+          minLength: 1
+          description: Folder path where the playbook is located ("/" means top level)
+          example: /
+          readOnly: true
+        folderId:
+          type: integer
+          format: int64
+          minimum: 0
+          readOnly: true
+          description: The ID of the folder where the playbook is located (ID 0 is top level)
+        metadata:
+          $ref: '#/components/schemas/PlaybookMetadata'
+        revision:
+          type: integer
+          format: int32
+          description: Revision number of the playbook
+          example: 1
+          readOnly: true
+        workspace:
+          $ref: '#/components/schemas/PlaybookWorkspace'
+        setup:
+          $ref: '#/components/schemas/PlaybookSetup'
+        execution:
+          $ref: '#/components/schemas/PlaybookExecution'
+        teardown:
+          $ref: '#/components/schemas/PlaybookTeardown'
+        xilConfigRequirements:
+          type: array
+          default: [ ]
+          items:
+            $ref: '#/components/schemas/Requirement'
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaybookParameter'
+          default: [ ]
+        projectId:
+          type: integer
+          description: ID of the test.guide project
+          example: 1
+          readOnly: true
+      required:
+        - metadata
+        - workspace
+        - execution
+
+    PlaybookParameter:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '^(?!TT_)[a-zA-Z][a-zA-Z0-9_]*$'
+          example: label
+          description: The label of the parameter.
+        valuePattern:
+          type: string
+          minLength: 1
+          example: '[A-Z]{3}[0-9]*'
+          description: |
+            The pattern to which the parameter value must match. This has to be written in a regular expression syntax accepted by RE2.
+            
+            More information about the RE2 syntax can be found [here](<https://github.com/google/re2/wiki/Syntax>).
+        defaultValue:
+          type: string
+          maxLength: 4095
+          example: value
+          description: The default value of the parameter. If a 'valuePattern' is specified the default value must match it.
+        required:
+          type: boolean
+          default: false
+          example: true
+          description: Whether this parameter is a required parameter for the execution of the playbook.
+        description:
+          type: string
+          maxLength: 4095
+          description: The description of the parameter.
+      required:
+        - label
+
+    PlaybookResponse:
+      type: object
+      properties:
+        playbookId:
+          type: integer
+          format: int64
+          example: 1
+          description: ID of the playbook
+        playbookLink:
+          type: string
+          description: Hyperlink to the details page of the created playbook in test.guide
+          pattern: '^(http|https)://[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?(:[0-9]{1,5})?(/[^\s]*)?$'
+          example: 'https://testguide.com/execution/playbookhistory/1/editor?revision=1&projectId=1'
+        warnings:
+          type: array
+          nullable: true
+          example: [ ]
+          items:
+            $ref: '#/components/schemas/PlaybookUploadWarning'
+
+    PlaybookUploadWarning:
+      type: object
+      description: Warning that may appear when uploading a playbook.
+      properties:
+        warningType:
+          type: string
+          description: warning type
+          example: scmNotFound
+          enum:
+            - scmNotFound
+            - ambiguousScmUrl
+            - artifactUploadFailed
+        message:
+          type: string
+          description: warning message
+          example: 'Could not upload playbook as artifact to the artifact management'
+
+    PlaybookUploadInfo:
+      type: object
+      description: Information about upload user and upload time of the playbook.
+      readOnly: true
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: ID of the uploading user
+          example: 1
+        userName:
+          type: string
+          description: Name of the uploading user
+          example: 'TestUser'
+        date:
+          type: string
+          format: date-time
+          description: Upload time in RFC 3339 format (ISO 8601 compatible)
+          example: '2020-10-30T12:34:56.789Z'
+      required:
+        - userId
+        - userName
+        - date
+
+    PlaybookMetadata:
+      type: object
+      description: Important metadata of the playbook.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Short name of the playbook
+          example: 'MyPlaybook'
+        taskNameTemplate:
+          type: string
+          minLength: 1
+          description: Name template for execution tasks
+          default: '${playbook_name} (${playbook_datetime}) ${distribution_count}'
+        labels:
+          type: array
+          description: A set of unique labels that shall be associated with the playbook.
+          nullable: true
+          items:
+            type: string
+            minLength: 1
+            maxLength: 255
+            pattern: '^[^,\x00]+$'
+          uniqueItems: true
+        description:
+          readOnly: true
+          type: string
+          nullable: true
+          description: The description of the playbook
+      required:
+        - name
+
+    PlaybookWorkspace:
+      type: object
+      description: Workspace description of the playbook.
+      properties:
+        source:
+          $ref: '#/components/schemas/PlaybookSource'
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceDependency'
+          default: [ ]
+      required:
+        - source
+
+    PlaybookSource:
+      type: object
+      description: Workspace source of the playbook.
+      properties:
+        sourceType:
+          type: string
+          enum:
+            - location
+            - artifact
+            - artifactFilter
+            - scm
+          description: |
+            Type of the playbook workspace source, can be one of:
+            * "location"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "location",
+                "path": "\\\\network\\bundles\\mybundle.zip"
+              }
+              ```
+            * "artifact"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "artifact",
+                "artifactId": "depository1-12345"
+              }
+              ```
+            * "artifactFilter"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "artifactFilter",
+                "filterId": 3
+              }
+              ```
+            * "scm"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "scm",
+                "scmType": "git",
+                "scmUrl": "https://scm.example.com/workspaces/project-workspace.git",
+                "scmCommit": "17a5e88542a201da943b331c8c4d41695843c319"
+              }
+              ```
+            For detailed descriptions see section "Schemas"
+        relativeWorkspacePath:
+          type: string
+          description: |
+            Optional relative path to workspace folder inside the source.
+            Use this to select a specific workspace when the source contains multiple workspaces
+            or the workspace is located in a subfolder of the source.
+
+            The relative path can not be used with package/project files from the artifact management
+            or PRZ files.
+
+            Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped and
+            works for both Linux and Windows.
+            
+            Variables (`${VARIABLE}`) are expanded.
+          example: 'test-drive-123/workspace01'
+      discriminator:
+        propertyName: sourceType
+        mapping:
+          location: '#/components/schemas/PlaybookLocation'
+          artifact: '#/components/schemas/PlaybookArtifact'
+          artifactFilter: "#/components/schemas/PlaybookArtifactFilter"
+          scm: '#/components/schemas/PlaybookScm'
+      required:
+        - sourceType
+      example:
+        sourceType: 'scm'
+        scmType: 'git'
+        scmUrl: 'https://scm.example.com/workspaces/project-workspace.git'
+        scmCommit: '17a5e88542a201da943b331c8c4d41695843c319'
+        relativeWorkspacePath: 'test-drive-123/workspace01'
+
+    PlaybookLocation:
+      description: Workspace source of the playbook as a local accessible path on a network drive.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSource'
+        - type: object
+          properties:
+            path:
+              $ref: '#/components/schemas/LocationPath'
+          required:
+            - path
+
+    PlaybookArtifact:
+      description: Workspace source of the playbook as an artifact in the test.guide artifact management.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSource'
+        - type: object
+          properties:
+            artifactId:
+              $ref: '#/components/schemas/ArtifactId'
+          required:
+            - artifactId
+
+    PlaybookArtifactFilter:
+      description: |
+        Workspace source of the playbook as an artifact filter in the test.guide artifact management.
+        
+        When creating an explicit execution task, 
+        the filter is evaluated to select the most recently created matching artifact as source of the execution task.
+
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSource'
+        - type: object
+          properties:
+            filterId:
+              $ref: '#/components/schemas/ArtifactFilterId'
+          required:
+            - filterId
+
+    PlaybookScm:
+      description: Workspace source of the playbook as a repository managed by a source control management tool.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSource'
+        - type: object
+          properties:
+            scmLabel:
+              $ref: '#/components/schemas/ScmLabel'
+            scmUrl:
+              $ref: '#/components/schemas/ScmUrl'
+            scmCommit:
+              $ref: '#/components/schemas/ScmCommit'
+            sparseCheckoutPath:
+              $ref: '#/components/schemas/SparseCheckoutPath'
+            settings:
+              $ref: '#/components/schemas/ScmSettings'
+
+    PlaybookSetup:
+      type: object
+      description: Setup of the playbook. Is executed before the actual test cases.
+      properties:
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+          default: [ ]
+
+    PlaybookTeardown:
+      type: object
+      description: Teardown of the playbook. Is executed after the actual test cases.
+      properties:
+        steps:
+          type: array
+          default: [ ]
+          items:
+            $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+
+    PlaybookSetupTeardownStep:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+            - project
+            - configuration
+            - ecuTestStart
+            - ecuTestStop
+            - command
+            - packageFilter
+            - projectFilter
+          description: |
+            Type of the step for setup and teardown, can be one of:
+            * "package"
+
+              _Example:_
+              ```
+              {
+                "type": "package",
+                "relativePath": "Packages/Configuration/Config.pkg"
+              }
+              ```
+            * "project"
+
+              _Example:_
+              ```
+              {
+                "type": "project",
+                "relativePath": "Packages/Configuration/Config.prj"
+              }
+              ```
+            * "configuration"
+
+              _Example:_
+              ```
+              {
+                "type": "configuration",
+                "tbcPath": "Configurations/Testconfiguration.tbc",
+                "tcfPath": "KEEP"
+              }
+              ```
+            * "ecuTestStart"
+
+              _Example:_
+              ```
+              {
+                "type": "ecuTestStart",
+                "reuse": "never"
+              }
+              ```
+            * "ecuTestStop"
+
+              _Example:_
+              ```
+              {
+                "type": "ecuTestStop"
+              }
+              ```
+            * "command"
+
+              _Example:_
+              ```
+              {
+                "type": "command",
+                "command": [
+                  "path/to/executable",
+                  "arg1",
+                  "arg2"
+                ]
+              }
+              ```
+            * "packageFilter"
+            
+              _Example:_
+              ...
+            
+              {
+                "filter" : {
+                  "attributes" : [ {
+                    "key" : "Designer",
+                    "values" : [ "*" ]
+                  } ],
+                  "testScriptId" : [ "123456" ]
+                },
+                "type" : "packageFilter"
+              }
+              ...
+            * "projectFilter"
+            
+              _Example:_
+              ...
+              {
+                "filter" : {
+                  "attributes" : [ {
+                    "key" : "Designer",
+                    "values" : [ "*" ]
+                  } ],
+                  "testSuiteId" : [ "123456" ]
+                },
+                "type" : "projectFilter"
+              }
+              ...
+            For detailed descriptions see section "Schemas"
+          example: package
+        stepName:
+          $ref: '#/components/schemas/PlaybookStepName'
+        executionInfo:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/PlaybookStepExecutionInfo'
+      discriminator:
+        propertyName: type
+        mapping:
+          package: '#/components/schemas/PlaybookSetupTeardownPackageStep'
+          project: '#/components/schemas/PlaybookSetupTeardownProjectStep'
+          configuration: '#/components/schemas/PlaybookSetupTeardownConfigurationStep'
+          ecuTestStart: '#/components/schemas/PlaybookSetupTeardownEcuTestStartStep'
+          ecuTestStop: '#/components/schemas/PlaybookSetupTeardownEcuTestStopStep'
+          command: '#/components/schemas/PlaybookSetupTeardownCommandStep'
+          packageFilter: '#/components/schemas/PlaybookSetupTeardownPackageFilterStep'
+          projectFilter: '#/components/schemas/PlaybookSetupTeardownProjectFilterStep'
+      required:
+        - type
+      example:
+        type: 'package'
+        relativePath: 'Packages/Configuration/Config.pkg'
+        timeout: 60
+
+    PlaybookSetupTeardownPackageStep:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - $ref: '#/components/schemas/PlaybookPackageStep'
+        - type: object
+
+    PlaybookSetupTeardownProjectStep:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - $ref: '#/components/schemas/PlaybookProjectStep'
+        - type: object
+
+    PlaybookSetupTeardownPackageFilterStep:
+      description: |
+        A filter definition that is expanded to actual package steps when a playbook is about to be executed or when an 
+        execution task gets uploaded to test.guide.
+        
+        Only packages that originate from a Git repository that is referenced as the source or a dependency of the 
+        playbook or execution task will be found.
+        
+        Creating an execution task containing a filter step might take a moment, depending on the size of the Git
+        repository.
+        
+        Within attributes and test script IDs, a parameter containing a list of values can be inserted using 
+        ${list:&lt;parameterlabel&gt;}. These values must be separated by commas.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - $ref: '#/components/schemas/PlaybookPackageFilterStep'
+        - type: object
+
+    PlaybookSetupTeardownProjectFilterStep:
+      description: |
+        A filter definition that is expanded to actual project steps when a playbook is about to be executed or when an 
+        execution task gets uploaded to test.guide.
+        
+        Only projects that originate from a Git repository that is referenced as the source or a dependency of the 
+        playbook or execution task will be found.
+        
+        Creating an execution task containing a filter step might take a moment, depending on the size of the Git
+        repository.
+        
+        Within attributes and test suite IDs, a parameter containing a list of values can be inserted using 
+        ${list:&lt;parameterlabel&gt;}. These values must be separated by commas.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - $ref: '#/components/schemas/PlaybookProjectFilterStep'
+        - type: object
+
+    PlaybookSetupTeardownConfigurationStep:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - type: object
+          properties:
+            tbcPath:
+              type: string
+              description: |
+                Relative path to a test resource configuration file inside workspace.
+                An empty path will unload the configuration.
+
+                Attention: The use of the keyword "KEEP" is deprecated since ecu.test version 2023.4 and will no longer 
+                be supported in a future version.
+
+                Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped
+                and works for both Linux and Windows.
+                
+                Variables (`${VARIABLE}`) are expanded.
+              default: ''
+              example: 'Configurations/TestBenchConfiguration.tbc'
+            tcfPath:
+              type: string
+              description: |
+                Relative path to a test configuration file inside workspace.
+                An empty path will unload the configuration.
+
+                Attention: The use of the keyword "KEEP" is deprecated since ecu.test version 2023.4 and will no longer 
+                be supported in a future version.
+
+                Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped
+                and works for both Linux and Windows.
+                
+                Variables (`${VARIABLE}`) are expanded.
+              default: ''
+              example: 'Configurations/TestConfiguration.tcf'
+            constants:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/PlaybookEnvironmentConstant'
+
+    PlaybookSetupTeardownEcuTestStartStep:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - type: object
+          properties:
+            reuse:
+              type: string
+              enum:
+                - never
+                - always
+              description: |
+                Specifies, if an ecu.test instance will be reused or restarted, can be one of:
+                * "never" - If an ecu.test instance is already running, it is closed and restarted for the execution 
+                  of the following playbook steps. ecu.test is shut down at the end of the execution.
+                * "always" - If an ecu.test instance is already running, it is not closed but reused for the following 
+                  playbook steps. ecu.test is left open at the end of the execution.
+              default: never
+            keepConfiguration:
+              type: boolean
+              default: false
+              description: |
+                Specifies, whether an already running ecu.test instance should keep the currently loaded configuration.
+                If false, a possibly loaded configuration will be unloaded.
+            waitMinutesForLicense:
+              type: integer
+              format: int32
+              description: |
+                Time to wait for an ecu.test license. Testing every 5 minutes. -1 means endless waiting.
+              default: 0
+              minimum: -1
+              example: 60
+
+    PlaybookSetupTeardownEcuTestStopStep:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - type: object
+
+    PlaybookSetupTeardownCommandStep:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookSetupTeardownStep'
+        - $ref: '#/components/schemas/PlaybookCommandStep'
+        - type: object
+          properties:
+            applyExitCodeSemantics:
+              type: boolean
+              nullable: false
+              default: false
+              description: |
+                Flag is used to decide whether the exit code of this step has a special semantic
+                that will be applied in the ResourceAdapter. 
+                It can only be set for command steps in the setup or teardown. A successfully executed 
+                command step will go on to the next step, independent of this property.
+                
+                If 'applyExitCodeSemantics' is set to false, which is the default value, an erroneous command 
+                step will cancel the setup, go to the teardown section and the execution results in ERROR. 
+                
+                Otherwise the exit codes for the command step will be interpreted with the following semantics.
+                
+                * 0 - Continue execution with the next step
+                * 1 - Abort execution, continue with teardown and consider the step as erroneous
+                * 2 - Abort execution without performing teardown and finish the execution task with error
+                * 3 - Abort execution, continue with teardown and consider the step as successful
+                * 4 - Abort execution without performing teardown and finish the execution task as successful
+
+    PlaybookExecution:
+      type: object
+      description: Contains actual test cases of the playbook which can be executed independently.
+      properties:
+        testcases:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaybookTestcase'
+          default: [ ]
+      example:
+        testcases:
+          - {
+            'type': 'package',
+            'relativePath': 'Packages/Folder03/Pkg01.pkg',
+            'packageParameters': [
+              {
+                'label': 'startingSpeed',
+                'value': '42.0'
+              }
+            ]
+          }
+          - {
+            'type': 'project',
+            'relativePath': 'Packages/Folder42/Prj02.prj',
+            'timeout': 60
+          }
+
+    PlaybookTestcase:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - package
+            - project
+            - analysis
+            - command
+            - packageFilter
+            - projectFilter
+          description: |
+            Type of the testcase, can be one of:
+            * "package"
+
+              _Example:_
+              ```
+              {
+                "type": "package",
+                "relativePath": "Packages/Folder03/Package01.pkg"
+              }
+              ```
+            * "project"
+
+              _Example:_
+              ```
+              {
+                "type": "project",
+                "relativePath": "Packages/Folder03/Project01.prj"
+              }
+              ```
+            * "analysis"
+
+              _Example:_
+              ```
+              {
+                "type": "analysis"
+                "relativePath": "Packages/MyAnalysis.pkg",
+                "analysisName": "Traceanalysis 1",
+                "recordings": [
+                  {
+                    "path": "CSV/example_trace.csv",
+                    "recordingGroup": "Recording group",
+                  }
+                ]
+              }
+              ```
+            * "command"
+
+              _Example:_
+              ```
+              {
+                "type": "command",
+                "command": [
+                  "path/to/executable",
+                  "arg1",
+                  "arg2"
+                ]
+              }
+              ```
+            * "packageFilter"
+            
+              _Example:_
+              ...
+            
+              {
+                "filter" : {
+                  "attributes" : [ {
+                    "key" : "Designer",
+                    "values" : [ "*" ]
+                  } ],
+                  "testScriptId" : [ "123456" ]
+                },
+                "type" : "packageFilter"
+              }
+              ...
+            * "projectFilter"
+            
+              _Example:_
+              ...
+              {
+                "filter" : {
+                  "attributes" : [ {
+                    "key" : "Designer",
+                    "values" : [ "*" ]
+                  } ],
+                  "testSuiteId" : [ "123456" ]
+                },
+                "type" : "projectFilter"
+              }
+              ...
+            For detailed descriptions see section "Schemas"
+          example: package
+        stepName:
+          $ref: '#/components/schemas/PlaybookStepName'
+        stepId:
+          type: integer
+          description: |
+            ID of the playbook step relative to the playbook run id.
+
+            If specified, this is shown in the test report as constant 'TT_PLAYBOOK_STEP_ID'.
+        executionInfo:
+          readOnly: true
+          allOf:
+            - $ref: '#/components/schemas/PlaybookStepExecutionInfo'
+      discriminator:
+        propertyName: type
+        mapping:
+          package: '#/components/schemas/PlaybookTestcasePackage'
+          project: '#/components/schemas/PlaybookTestcaseProject'
+          analysis: '#/components/schemas/PlaybookTestcaseAnalysis'
+          command: '#/components/schemas/PlaybookTestcaseCommand'
+          packageFilter: '#/components/schemas/PlaybookTestcasePackageFilter'
+          projectFilter: '#/components/schemas/PlaybookTestcaseProjectFilter'
+      required:
+        - type
+
+    PlaybookTestcasePackage:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookTestcase'
+        - $ref: '#/components/schemas/PlaybookPackageStep'
+        - type: object
+          properties:
+            packageParameters:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/PlaybookPackageParameter'
+              description: |
+                Parameters which should be used in the execution
+
+    PlaybookTestcaseProject:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookTestcase'
+        - $ref: '#/components/schemas/PlaybookProjectStep'
+        - type: object
+
+    PlaybookTestcasePackageFilter:
+      description: |
+        A filter definition that is expanded to actual package steps when a playbook is about to be executed or when an 
+        execution task gets uploaded to test.guide.
+        
+        Only packages that originate from a Git repository that is referenced as the source or a dependency of the 
+        playbook or execution task will be found.
+        
+        Creating an execution task containing a filter step might take a moment, depending on the size of the Git
+        repository.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookTestcase'
+        - $ref: '#/components/schemas/PlaybookPackageFilterStep'
+        - type: object
+
+    PlaybookTestcaseProjectFilter:
+      description: |
+        A filter definition that is expanded to actual project steps when a playbook is about to be executed or when an 
+        execution task gets uploaded to test.guide.
+        
+        Only projects that originate from a Git repository that is referenced as the source or a dependency of the 
+        playbook or execution task will be found.
+        
+        Creating an execution task containing a filter step might take a moment, depending on the size of the Git
+        repository.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookTestcase'
+        - $ref: '#/components/schemas/PlaybookProjectFilterStep'
+        - type: object
+
+    PlaybookTestcaseAnalysis:
+      description: Analysis testcases require ecu.test 2021.2.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookTestcase'
+        - $ref: '#/components/schemas/PlaybookEcuTestStep'
+        - type: object
+          properties:
+            relativePath:
+              type: string
+              minLength: 1
+              description: |
+                Relative path to a package inside a workspace.
+
+                Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped
+                and works for both Linux and Windows.
+
+                Variables (`${VARIABLE}`) are expanded.
+              example: 'Packages/Folder03/Package01.pkg'
+            stepAnalysisId:
+              type: integer
+              description: |
+                ID of the generated downstream analysis relative to the playbook step id.
+
+                If specified, this is shown in the test report as constant 'TT_PLAYBOOK_STEP_ANALYSIS_ID'.
+            packageParameters:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/PlaybookPackageParameter'
+              description: |
+                Parameters for package execution.
+            analysisName:
+              type: string
+              description: |
+                Name of the analysis to be executed. Will only be considered if the test case file is a package, not analysis package.
+              example: 'Traceanalysis 1'
+            mapping:
+              type: string
+              description: |
+                Optional mapping which overwrites the default mapping. Should not be set manually.
+            recordings:
+              type: array
+              nullable: true
+              items:
+                $ref: '#/components/schemas/PlaybookTestcaseAnalysisRecording'
+              description: |
+                Recordings for analysis execution.
+
+    PlaybookTestcaseAnalysisRecording:
+      type: object
+      description: A signal recording.
+      properties:
+        path:
+          type: string
+          description: |
+            Relative path to the recording inside a workspace.
+
+            Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped
+            and works for both Linux and Windows.
+            
+            Variables (`${VARIABLE}`) are expanded.
+          example: '${MY_RECORDING}'
+        recordingGroup:
+          type: string
+          description: |
+            Name of the recording group the recording is to be assigned to.
+
+            Only required for packages unless there is only one recording group (not used for analysis packages).
+          example: 'Aufnahmegruppe von Signalgruppe'
+        mappingNames:
+          type: array
+          description: |
+            Names of the mapping items included in this recording.
+
+            Only required for analysis packages unless there is only one recording (not used for packages).
+          default: [ ]
+          items:
+            type: string
+        deviceName:
+          type: string
+          description: |
+            Optional device name.
+
+            Required if the recording contains multiple devices and the mapping between device names in the
+            test configuration and device names in the recording cannot be realized by format details.
+
+            See "Supported file formats" in ecu.test help for more information.
+          example: 'CAN-Monitoring:1'
+        formatDetails:
+          type: string
+          description: |
+            Optional format details.
+
+            Required if the recording cannot be interpreted with default format details.
+
+            See "Supported file formats" in ecu.test help for more information.
+          example: "columnSeparator: '|', decimalSeparator: ',', thousandSeparator: '.', headLineNumber: '1', timeColumn: '1'"
+        deltaT:
+          type: number
+          format: double
+          description: |
+            Optional deltaT.
+
+            Required if the recordings are to be synchronized before the analysis.
+            deltaT is the time shift applied to the current recording with respect to its master recording.
+          default: 0.0
+          example: 5.345
+        startTime:
+          type: number
+          format: double
+          description: |
+            Optional start time.
+
+            Required if the analysis of the recording is to be restricted to times equal or greater than the startTime.
+        stopTime:
+          type: number
+          format: double
+          description: |
+            Optional stop time.
+
+            Required if the analysis of the recording is to be restricted to times smaller or equal than the stopTime.
+        recordingNumber:
+          type: integer
+          format: int32
+          description: |
+            Optional recording number.
+
+            Required for unique identification of recordings in container file formats as MDF ETAS.
+      required:
+        - path
+
+    PlaybookTestcaseCommand:
+      allOf:
+        - $ref: '#/components/schemas/PlaybookTestcase'
+        - $ref: '#/components/schemas/PlaybookCommandStep'
+        - type: object
+
+    PlaybookEcuTestStep:
+      type: object
+      properties:
+        constants:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/PlaybookEnvironmentConstant'
+        timeout:
+          $ref: '#/components/schemas/PlaybookExecutionTimeout'
+        uploadReport:
+          type: boolean
+          description: |
+            If `true`, the report for this step will be uploaded by the resource adapter.
+            Can be used to prevent double uploads via the tcf and the resource adapter, when set to `false`.
+            
+            ATTENTION: This field is deprecated! Please use the field `uploadReportOnVerdicts` instead.
+          deprecated: true
+        uploadReportOnVerdicts:
+          type: array
+          description: |
+            The report will be uploaded only when it has one of the given verdicts. 
+            The value "null" means that the report will be uploaded always, independent of the verdict.
+          items:
+            $ref: '#/components/schemas/EcuTestVerdict'
+          uniqueItems: true
+          nullable: true
+      required:
+        - relativePath
+
+    EcuTestVerdict:
+      type: string
+      description: The verdict of a test report generated by ecu.test.
+      enum:
+        - NONE
+        - SUCCESS
+        - INCONCLUSIVE
+        - FAILED
+        - ERROR
+
+    PlaybookCommandStep:
+      description: |
+        A step that executes a command.
+        
+        The working directory of the command is the workspace.
+      type: object
+      properties:
+        command:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: |
+            List of strings representing the executable and its arguments.
+            
+            Variables (`${VARIABLE}`) are expanded.
+          example:
+            - path/to/executable
+            - arg1
+            - arg2
+        environmentVariables:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/PlaybookCommandEnvironmentVariable'
+        timeout:
+          $ref: '#/components/schemas/PlaybookExecutionTimeout'
+      required:
+        - command
+
+    PlaybookEnvironmentConstant:
+      type: object
+      description: Environment constant for a package, project, configuration or analysis step.
+      properties:
+        label:
+          type: string
+          description: Label of the constant
+          minLength: 1
+        value:
+          type: string
+          description: |
+            Value of the constant as a python expression.
+            
+            Variables (`${VARIABLE}`) are expanded and automatically escaped.
+            If you want to avoid escaping you may prefix the variables name with "raw:" (`${raw:VARIABLE}`)
+      required:
+        - label
+        - value
+      example:
+        label: 'A2lPath'
+        value: "'${A2L}'"
+
+    PlaybookPackageParameter:
+      type: object
+      description: Package parameter for a package or analysis step.
+      properties:
+        label:
+          type: string
+          description: Label of the package parameter
+          minLength: 1
+        value:
+          type: string
+          description: |
+            Value of the package parameter as a python expression. 
+            
+            Variables (`${VARIABLE}`) are expanded and automatically escaped.
+            If you want to avoid escaping you may prefix the variables name with "raw:" (`${raw:VARIABLE}`)
+      required:
+        - label
+        - value
+      example:
+        label: 'startingSpeed'
+        value: '42.0'
+
+    PlaybookCommandEnvironmentVariable:
+      type: object
+      description: Environment variable for a command step.
+      properties:
+        label:
+          type: string
+          description: Label of the environment variable.
+          minLength: 1
+        value:
+          type: string
+          description: |
+            Value of the environment variable. 
+            
+            Variables (`${VARIABLE}`) are expanded.
+      required:
+        - label
+        - value
+      example:
+        label: 'PYTHONFAULTHANDLER'
+        value: '1'
+
+    PlaybookPackageStep:
+      allOf:
+        - type: object
+          properties:
+            relativePath:
+              type: string
+              minLength: 1
+              description: |
+                Relative path to the package inside a workspace.
+                
+                Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped
+                and works for both Linux and Windows.
+                
+                Variables (`${VARIABLE}`) are expanded.
+              example: 'Packages/Folder03/Package01.pkg'
+            useStepNameAsTestCaseName:
+              type: boolean
+              default: true
+              description: |
+                Use the name of the playbook step as name of the resulting test case, if it is specified.
+                Otherwise the filename of the package will become the name of the test case.
+                
+                Is only supported by ecu.test version 2025.3 and higher.
+            packageParameters:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlaybookPackageParameter'
+              description: Parameters which should be used in the execution
+              default: [ ]
+        - $ref: '#/components/schemas/PlaybookEcuTestStep'
+
+    PlaybookProjectStep:
+      allOf:
+        - type: object
+          properties:
+            relativePath:
+              type: string
+              minLength: 1
+              description: |
+                Relative path to the project inside a workspace.
+                
+                Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped
+                and works for both Linux and Windows.
+                
+                Variables (`${VARIABLE}`) are expanded.
+              example: 'Packages/Folder03/Project01.prj'
+        - $ref: '#/components/schemas/PlaybookEcuTestStep'
+
+    PlaybookPackageFilterStep:
+      allOf:
+        - type: object
+          properties:
+            filter:
+              $ref: '#/components/schemas/PlaybookPackageFilter'
+            packageParameters:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlaybookPackageParameter'
+              description: Parameters which should be used in the execution
+              default: [ ]
+        - $ref: '#/components/schemas/PlaybookEcuTestStep'
+
+    PlaybookProjectFilterStep:
+      allOf:
+        - type: object
+          properties:
+            filter:
+              $ref: '#/components/schemas/PlaybookProjectFilter'
+        - $ref: '#/components/schemas/PlaybookEcuTestStep'
+
+    PlaybookPackageFilter:
+      type: object
+      description: Filter options for ecu.test packages
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyValuesFilterItem'
+        testScriptId:
+          type: array
+          items:
+            type: string
+
+    PlaybookProjectFilter:
+      type: object
+      properties:
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyValuesFilterItem'
+        testSuiteId:
+          type: array
+          items:
+            type: string
+
+    KeyValuesFilterItem:
+      type: object
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+        negated:
+          type: boolean
+          default: false
+
+    PlaybookExecutionTimeout:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 1440
+      description: |
+        Timeout for the execution of this step in minutes. 
+        If exceeded, causes the whole playbook execution to be aborted.
+      example: 60
+
+    PlaybookStepName:
+      type: string
+      maxLength: 255
+      minLength: 1
+      description:
+        Alias of the playbook step.
+      nullable: true
+
+    PlaybookStepExecutionInfo:
+      type: object
+      readOnly: true
+      properties:
+        startTime:
+          type: string
+          format: date-time
+          description: Time at which the step started its execution in RFC 3339 format (ISO 8601 compatible)
+          example: '2020-02-19T12:34:67.890Z'
+          readOnly: true
+        stopTime:
+          type: string
+          format: date-time
+          description: Time at which the step ended its execution in RFC 3339 format (ISO 8601 compatible)
+          example: '2020-02-19T13:34:67.890Z'
+          readOnly: true
+        logArtifactId:
+          $ref: '#/components/schemas/ArtifactId'
+        result:
+          $ref: '#/components/schemas/PlaybookStepResult'
+        errorClasses:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: '#/components/schemas/PlaybookErrorClass'
+          description:
+            Set of error classes that occurred during playbook step execution.
+
+    PlaybookErrorClass:
+      type: string
+      enum:
+        - TIMEOUT
+        - ABORTED_BY_USER
+        - ABORTED_BY_DESIGN
+        - FILE_NOT_FOUND
+        - ECU_TEST_UNAVAILABLE
+        - REPORT_UPLOAD_FAILED
+        - ECU_TEST_LICENSE_NOT_FOUND
+        - COMMAND_START_FAILED
+        - ECU_TEST_START_FAILED
+        - ECU_TEST_NOT_IDLE
+      description:
+        A enum that includes errors at each step of execution
+
+    PlaybookStepResult:
+      type: string
+      enum:
+        - FINISHED
+        - ERROR
+        - SKIPPED
+        - CANCELLED
+        - TIMED_OUT
+        - VERDICT_SUCCESS
+        - VERDICT_FAILED
+        - VERDICT_ERROR
+        - VERDICT_INCONCLUSIVE
+        - VERDICT_NONE
+      description: |
+        The result of the step. 
+        
+        * FINISHED: The playbook step finished without any problems.
+        * ERROR: The playbook step could not be executed correctly. 
+        For ecu.test steps this might for example mean that the package or project to be executed or
+        the test configuration or test bench configuration to be loaded does not exist. 
+        For command steps this might for example mean that the command did not exit with code 0.
+        General errors that occurred during the execution of this step are also represented by the ERROR result.
+        * SKIPPED: The playbook step was not executed and got skipped.
+        * CANCELLED: The playbook step was aborted while being executed. 
+        The request to abort this step may have been triggered via test.guide, the ResourceAdapter or via ecu.test 
+        itself.
+        * TIMED_OUT: The playbook step was aborted because it exceeded the timeout specified for this step.
+        * The VERDICT_ prefixed values implicitly indicate that this step is FINISHED but also has an ecu.test verdict. 
+
+    PlaybookMoveRequest:
+      type: object
+      properties:
+        folderId:
+          type: integer
+          format: int64
+          minimum: 0
+          description: |
+            The ID of the folder to move the playbook to.
+            Must be a folder of the same project as the playbook.
+            The folder ID 0 is always associated with the top level folder.
+          example: 0
+      required:
+        - folderId
+
+    PlaybookExecutionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name template for all created execution tasks
+          example: '${playbook_name} (${playbook_datetime}) ${distribution_count}'
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 50
+          description: Priority for all created execution tasks
+          example: 42
+        parameters:
+          description: Must contain all required parameters of the playbook that do not have a default value.
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/ExecutionTaskParameter'
+        additionalSettings:
+          $ref: '#/components/schemas/AdditionalSettings'
+        distributionStrategy:
+          $ref: '#/components/schemas/PlaybookDistributionStrategy'
+
+    PlaybookDistributionStrategy:
+      type: object
+      description: Strategy for distributing a playbook to multiple execution task.
+      properties:
+        type:
+          type: string
+          enum:
+            - fixedNumberOfPartitions
+            - cloneOnAllMatchingTestBenches
+            - cloneOnSpecifiedTestBenches
+          description: |
+            Type of distributing a playbook to multiple execution tasks:
+            * "fixedNumberOfPartitions": the set of test cases of the playbook is divided into a fixed number of partitions (setup and teardown are cloned to each partition)
+
+              _Example:_
+              ```
+              {
+                "type": "fixedNumberOfPartitions",
+                "numberOfPartitions": 5
+              }
+              ```
+            * "cloneOnAllMatchingTestBenches": the set of currently matching test resources is determined, the playbook is cloned and executed on each of these test resources
+
+              _Example:_
+              ```
+              {
+                "type": "cloneOnAllMatchingTestBenches"
+              }
+              ```
+            * "cloneOnSpecifiedTestBenches": the set of specified matching test resources is determined, the playbook is cloned and executed on each of these test resources
+
+              _Example:_
+              ```
+              {
+                "type": "cloneOnSpecifiedTestBenches", 
+                "testbenches": [
+                  {
+                    "location": "TT/Level1/103",
+                    "testbench": "TraceTroniCar",
+                    "machine": "PC1"
+                  }
+                ]
+              }
+              ```
+            * if no distribution strategy is given, exactly one task is created from the playbook and executed on one arbitrary matching test resource (equivalent to fixedNumberOfPartitions with numberOfPartitions = 1)
+            
+            For detailed descriptions see section "Schemas"
+      discriminator:
+        propertyName: type
+        mapping:
+          fixedNumberOfPartitions: '#/components/schemas/FixedNumberOfPartitionsStrategy'
+          cloneOnAllMatchingTestBenches: '#/components/schemas/CloneOnAllMatchingTestBenchesStrategy'
+          cloneOnSpecifiedTestBenches: '#/components/schemas/CloneOnSpecifiedTestBenchesStrategy'
+      required:
+        - type
+      example:
+        type: 'fixedNumberOfPartitions'
+        numberOfPartitions: 5
+
+    FixedNumberOfPartitionsStrategy:
+      description: Divide set of test cases to a fixed number of partitions (setup and teardown are cloned to each partition).
+      allOf:
+        - $ref: '#/components/schemas/PlaybookDistributionStrategy'
+        - type: object
+          properties:
+            numberOfPartitions:
+              type: integer
+              format: int32
+              minimum: 1
+              maximum: 1000
+              description: Number of partitions
+              example: 5
+          required:
+            - numberOfPartitions
+      example:
+        type: 'fixedNumberOfPartitions'
+        numberOfPartitions: 5
+
+    CloneOnAllMatchingTestBenchesStrategy:
+      description: Clone set of setup steps, test cases and teardown steps and execute on each matching test resource.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookDistributionStrategy'
+        - type: object
+      example:
+        type: 'cloneOnAllMatchingTestBenches'
+
+    CloneOnSpecifiedTestBenchesStrategy:
+      description: Clone set of setup steps, test cases and teardown steps and execute on each pre-defined matching test resource.
+      allOf:
+        - $ref: '#/components/schemas/PlaybookDistributionStrategy'
+        - type: object
+          properties:
+            testbenches:
+              type: array
+              minItems: 1
+              items:
+                $ref: '#/components/schemas/XilResource'
+              uniqueItems: true
+              description: |
+                List of strings representing the resource location IDs of the test resources
+      example:
+        type: 'cloneOnSpecifiedTestBenches'
+
+    PlaybookSort:
+      type: string
+      enum:
+        - ID
+        - NAME
+        - UPLOADED
+        - REVISION
+      default: NAME
+      description: Sort for field
+
+    PlaybookFolderSort:
+      type: string
+      enum:
+        - ID
+        - NAME
+      default: NAME
+      description: Sort for field
+
+    WorkspaceDependency:
+      type: object
+      description: Dependency of a execution task or playbook. This references an artifact which can be used during task execution.
+      properties:
+        label:
+          type: string
+          minLength: 1
+          description: |
+            Label of the dependency.
+
+            The absolute path of the dependency can be accessed within constant values or package parameter values with `${LABEL}`.
+            If `unzip` is `true`, the path of the directory with the unzipped content is used.
+          example: 'A2L'
+        copyTo:
+          type: string
+          description: |
+            Path where the dependency is additionally copied to. It can be a absolute path or a relative path to the workspace.
+
+            Directories are created when necessary. Existing files will be overwritten and existing directories will be merged.
+
+            Prefer to use the forward slash `/` because, unlike the back slash `\`, it does not need to be escaped and
+            works for both Linux and Windows.
+            
+            Variables (`${VARIABLE}`) are expanded.
+
+            ### Without unzip:
+
+            If path is an existing directory or the path ends with `/`, the file is placed into this directory.
+            Otherwise the file is created with this path.
+
+            ### With unzip:
+
+            The content is unzipped into this directory. The directory will be created if necessary.
+          example: 'Dependencies/'
+        unzip:
+          type: boolean
+          description: |
+            If `true`, unzip the dependency after downloading.
+
+            Only allowed for sources of type "artifact" or "link".
+          default: false
+        source:
+          $ref: '#/components/schemas/WorkspaceDependencySource'
+      required:
+        - label
+        - source
+
+    WorkspaceDependencySource:
+      type: object
+      properties:
+        sourceType:
+          type: string
+          description: |
+            Type of the dependency source, can be one of:
+            * "artifact"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "artifact",
+                "artifactId": "depository1-12345"
+              }
+              ```
+            
+             * "artifactFilter"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "artifactFilter",
+                "filterId": 3
+              }
+              ```
+
+            * "scm"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "scm",
+                "scmLabel": "MyGit",
+                "scmCommit": "17a5e88542a201da943b331c8c4d41695843c319"
+              }
+              ```
+
+            * "link"
+
+              _Example:_
+              ```
+              {
+                "sourceType": "link",
+                "link": "https://example.com/resource.zip",
+                "hash": {
+                  "type": "md5",
+                  "value": "816401bbe5a4b42d6aaf51415f6698ce"
+                }
+              }
+              ```
+              For detailed descriptions see section "Schemas"
+          enum:
+            - artifact
+            - artifactFilter
+            - scm
+            - link
+      discriminator:
+        propertyName: sourceType
+        mapping:
+          artifact: '#/components/schemas/WorkspaceDependencyArtifact'
+          artifactFilter: '#/components/schemas/WorkspaceDependencyArtifactFilter'
+          scm: '#/components/schemas/WorkspaceDependencyScm'
+          link: '#/components/schemas/WorkspaceDependencyLink'
+      required:
+        - sourceType
+      example:
+        sourceType: 'artifact'
+        artifactId: 'depository1-12345'
+
+    WorkspaceDependencyArtifact:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceDependencySource'
+        - type: object
+          properties:
+            artifactId:
+              $ref: '#/components/schemas/ArtifactId'
+          required:
+            - artifactId
+
+    WorkspaceDependencyArtifactFilter:
+      description: |
+        Workspace dependency that references an artifact filter of the test.guide artifact management.
+
+        The filter is evaluated to the most recently created matching artifact at the time of execution task creation.
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceDependencySource'
+        - type: object
+          properties:
+            filterId:
+              $ref: '#/components/schemas/ArtifactFilterId'
+          required:
+            - filterId
+
+    WorkspaceDependencyScm:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceDependencySource'
+        - type: object
+          properties:
+            scmLabel:
+              $ref: '#/components/schemas/ScmLabel'
+            scmUrl:
+              $ref: '#/components/schemas/ScmUrl'
+            scmCommit:
+              $ref: '#/components/schemas/ScmCommit'
+            sparseCheckoutPath:
+              $ref: '#/components/schemas/SparseCheckoutPath'
+            checkoutLocation:
+              $ref: '#/components/schemas/ScmCheckoutLocation'
+            settings:
+              $ref: '#/components/schemas/ScmSettings'
+
+
+    WorkspaceDependencyLink:
+      description: |
+        The link to an arbitrary file.
+        
+        If the hash is provided the downloaded files checksum will be checked against that hash.
+        
+        _Example:_
+        ```
+        {
+          "sourceType": "link",
+          "link": "https://example.com/resource.zip",
+          "hash": {
+            "type": "md5",
+            "value": "816401bbe5a4b42d6aaf51415f6698ce"
+          }
+        }
+        ```
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceDependencySource'
+        - type: object
+          properties:
+            link:
+              $ref: '#/components/schemas/Hyperlink'
+            hash:
+              $ref: '#/components/schemas/FileHash'
+          required:
+            - link
+
+    FileHash:
+      description: The hash of a file.
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - md5
+          default: md5
+          description:
+            Type of hash. Currently, only md5 is supported.
+            
+            For detailed descriptions see section "Schemas"
+      discriminator:
+        propertyName: type
+        mapping:
+          md5: '#/components/schemas/Md5FileHash'
+
+    Md5FileHash:
+      description: A file hash of type md5.
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/FileHash'
+        - type: object
+          properties:
+            value:
+              type: string
+              pattern: '^([A-Fa-f0-9]{32}|\$\{.+})$'
+              description: MD5 hash of the file.
+              example: 816401bbe5a4b42d6aaf51415f6698ce
+
+    LocationPath:
+      type: string
+      minLength: 1
+      maxLength: 512
+      description: |
+        Path to source accessible on node, for example a network drive.
+        
+        Variables (`${VARIABLE}`) are expanded.
+      example: '\\\\network\\bundles\\mybundle.zip'
+
+    ArtifactId:
+      type: string
+      minLength: 1
+      description: |
+        Artifact ID of the referenced source stored in the test.guide artifact management (format: `<depositoryId>-<artifactNumber>`).
+        
+        Variables (`${VARIABLE}`) are expanded.
+      example: 'depository1-12345'
+
+    ArtifactFilterId:
+      type: integer
+      format: int64
+      minimum: 1
+      description: |
+        Artifact filter ID of the referenced source stored in the test.guide artifact management.
+        
+        Variables (`${VARIABLE}`) are expanded.
+      example: 1
+
+    Hyperlink:
+      type: string
+      description: |
+        Hyperlink to a referenced resource (format: `https://example.com/resource.zip`).
+        
+        Variables (`${VARIABLE}`) are expanded.
+      pattern: '^(http|https)://[a-z0-9]+([\-\.]{1}[a-z0-9]+)*(\.[a-z]{2,5})?(:[0-9]{1,5})?(/[^\s]*)?$'
+      example: 'https://example.com/resource.zip'
+
+    ScmLabel:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: |
+        Label of the SCM which is configured in test.guide.
+
+        **Exactly one of the properties "scmLabel" or "scmUrl" is required!**
+      example: 'MyGit'
+
+    ScmUrl:
+      type: string
+      minLength: 1
+      description: |
+        URL to the SCM repository which has to be configured as SCM in test.guide.
+
+        **Exactly one of the properties "scmLabel" or "scmUrl" is required!**
+      example: 'https://scm.example.com/workspaces/project-workspace.git'
+
+    ScmCommit:
+      type: string
+      maxLength: 255
+      description: |
+        Reference to a specific commit of the SCM (if not specified the latest commit on the default branch is used)
+
+        In Git this can be:
+        * a commit hash: `17a5e88542a201da943b331c8c4d41695843c319`
+        * an explicit reference to a tag, branch, merge request, ... like `refs/tags/TAG_NAME` or `refs/heads/BRANCH_NAME`
+        * a tag name
+        * a branch name (the latest commit of the branch is used)
+
+        In SVN this can be:
+        * a commit number
+        * `HEAD` for the latest commit
+        
+        Variables (`${VARIABLE}`) are expanded.
+      example: '17a5e88542a201da943b331c8c4d41695843c319'
+
+    SparseCheckoutPath:
+      type: string
+      maxLength: 255
+      description: |
+        Optional path to a folder that should be checked out.
+        Use this if you do not want to checkout the whole SCM repository but only a specific subfolder.
+
+        Variables (`${VARIABLE}`) are expanded.
+
+        Only allowed for SVN repositories.
+      example: 'path/to/repo'
+
+    ScmCheckoutLocation:
+      type: string
+      maxLength: 255
+      description: |
+        The location where the SCM dependency should be checked out to. The dependency will not be checked out to the 
+        ResourceAdapter bundle cache but instead directly to the specified location. If the specified location contains 
+        data from a different repository (by matching the remote URL) or data that does not origin from an SCM 
+        repository at all, the execution task will be set to error.
+        
+        The location may be an absolute path or a relative path to the workspace.
+      example: 'some/path/in/workspace'
+
+    ScmSettings:
+      type: object
+      description: |
+        SCM tool specific settings that will override the settings of the SCM tool in the project settings.
+        
+        If this object is passed along a playbook or execution task source or along a dependency, all settings of the 
+        SCM tool will be overridden.
+      properties:
+        checkoutStrategy:
+          type: string
+          enum:
+            - NOCLEAN
+            - CLEAN
+            - CLONE
+          default: CLEAN
+          description: Strategy for checkout of the source code
+        submoduleCheckoutStrategy:
+          description: |
+            The checkout strategy for submodules.
+            
+            * NONE will not checkout submodules
+            * RECURSIVE will checkout all submodules recursively
+            
+            This setting does only effect Git sources and dependencies.
+          type: string
+          enum:
+            - RECURSIVE
+            - NONE
+          default: RECURSIVE
+        useLfs:
+          type: boolean
+          description: |
+            If `true`, activate Git LFS support for this repository.
+            
+            This setting does only effect Git sources and dependencies.
+          default: false
+        disableShallowClone:
+          type: boolean
+          description: |
+            If shallow clone is enabled, git will only fetch the latest/specified revision of a repository before 
+            checkout.
+            If shallow clone is disabled, the whole repositories history will be fetched and the specified 
+            reference will be checked out afterwards.
+
+            Default is shallow clone. 
+
+            ATTENTION: disabling shallow clone might result in much longer checkout durations.
+            
+            This setting does only effect Git sources and dependencies.
+          default: false
+
+    PlaybookFolder:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the playbook folder.
+        parentId:
+          type: integer
+          format: int64
+          description: The ID of the parent folder.
+          minimum: 0
+      required:
+        - parentId
+        - name
+
+    PlaybookFolderInfo:
+      type: object
+      readOnly: true
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The ID of the playbook folder.
+          minimum: 0
+        name:
+          type: string
+          description: |
+            The name of the playbook folder.
+            
+            This name is already included in the folder path as last segment.
+        folderPath:
+          type: string
+          description: |
+            The "/" segmented path of the folder.
+            
+            This path already includes the name as its last segment.
+        parentId:
+          type: integer
+          format: int64
+          description: The ID of the parent folder.
+          minimum: 0
+
+    PlaybookFolderPostResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The ID of the playbook folder.
+          minimum: 0
+          readOnly: true
+
+    PublicVariable:
+      type: object
+      description: |
+        Public variable of the test execution, which is applied to all execution tasks.
+        Public variables are treated the same as execution task parameters.
+      properties:
+        label:
+          type: string
+          description: Label of the variable
+          minLength: 1
+          maxLength: 255
+        value:
+          type: string
+          description: Value of the variable
+          minLength: 1
+          maxLength: 4096
+      required:
+        - label
+        - value
+      example:
+        label: 'label'
+        value: '2.1.42'
+
+    SecretVariable:
+      type: object
+      description: |
+        Secret variables are provided as environment variables to any ecu.test that may be started during test 
+        execution. They are also available as additional environment variables in command steps.
+        The value of the secret variable can only be set, but will not be returned.
+      properties:
+        label:
+          type: string
+          description: Label of the secret variable
+          minLength: 1
+          maxLength: 255
+        value:
+          type: string
+          writeOnly: true
+          description: Value of the secret variable
+          minLength: 1
+          maxLength: 4096
+        description:
+          type: string
+          description: Description of the secret variable
+          maxLength: 4096
+      required:
+        - label
+        - value
+      example:
+        label: 'label'
+        value: 'secret'
+        description: 'This secret variable is used as a password for login'
+
+    SecretVariableInfo:
+      type: object
+      description: |
+        Return object of the secret variable that does not contain the value of the secret variable.
+      properties:
+        label:
+          type: string
+          description: Label of the secret variable
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          description: Description of the secret variable
+          maxLength: 4096
+      required:
+        - label
+      example:
+        label: 'label'
+        description: 'This secret variable is used as password for login'
+
+    LogArchiveConfiguration:
+      type: object
+      description: |
+        Configuration for log archive.
+
+        When enabled all uploaded logs are stored in an artifact depository.
+      properties:
+        enabled:
+          type: boolean
+          description: |
+            Enabled state for log archive
+
+            Initial value is `false`.
+          example: true
+        depository:
+          type: string
+          description: ID of artifact depository used to store uploaded logs
+          example: logs
+
+    ExecutionTaskPriorityConfiguration:
+      type: object
+      description: |
+        Configuration for low  and high priority execution tasks.
+
+        When enabled boundaries for low  and high priority execution tasks can be configured.
+      properties:
+        enabled:
+          type: boolean
+          description: |
+            Enabled state for priority configuration.
+
+            Initial value is `false`.
+          example: true
+        lowPriorityBoundary:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: |
+            All execution tasks with a lower priority than this boundary will be considered "low priority". 
+            
+            Their execution can be aborted by "high priority" tasks.
+          example: 20
+        highPriorityBoundary:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: |
+            All execution tasks with a higher priority than this boundary will be considered "high priority". 
+            
+            They can abort "low priority" tasks if there are no idle test resources available.
+          example: 80
+
+
+    DownstreamAnalysisConfiguration:
+      type: object
+      description: Configuration for downstream analysis.
+      properties:
+        enabled:
+          type: boolean
+          description: |
+            Enabled state for downstream analysis.
+
+            Initial value is `false`.
+          example: true
+        recordingManagementStrategy:
+          type: string
+          description: |
+            Strategy for recording management.
+
+            * `ARTIFACT_MANAGEMENT` - Recordings are uploaded to artifact management depository `recordingsDepository`.
+
+              Exception are recordings in directories from `excludeRecordingDirectories`.
+            * `EXTERNAL` - No recordings are uploaded.
+
+              The user is responsible for making the recordings available on the analysis node, e.g. on a network drive.
+
+            Initial value is `ARTIFACT_MANAGEMENT`.
+          enum:
+            - ARTIFACT_MANAGEMENT
+            - EXTERNAL
+          example: ARTIFACT_MANAGEMENT
+        recordingsDepository:
+          type: string
+          nullable: true
+          description: |
+            ID of artifact depository used to store uploaded playbooks.
+
+            Only used when `recordingManagementStrategy=ARTIFACT_MANAGEMENT`.
+          example: myRecordings
+        excludeRecordingDirectories:
+          type: array
+          nullable: true
+          description: |
+            Recordings from these directories are not uploaded.
+
+            For example these directories are network drives available on all analysis nodes.
+
+            Only used when `recordingManagementStrategy=ARTIFACT_MANAGEMENT`.
+          items:
+            type: string
+          example:
+            - \\NETWORK\DRIVE
+            - /mnt/myNetworkDrive
+
+    BlockedByAppointmentConfiguration:
+      type: object
+      description: Configuration for calendar-controlled test execution
+      properties:
+        enabled:
+          type: boolean
+          description: |
+            Enabled state for calendar-controlled test execution.
+
+            Initial value is `false`.
+          example: true
+        appointmentList:
+          type: array
+          nullable: true
+          description: |
+            List of appointment categories that are used to determine if a test resource is currently in an appointment.
+            Use the field type to switch between allowlist behavior and blocklist behavior.
+          items:
+            $ref: '#/components/schemas/Uuid'
+        type:
+          type: string
+          description: |
+            Type of the calender-controlling.
+            
+            * `ALLOWLIST` - Only test resources that are currently in appointments of one of the specified categories are allowed to be used for execution tasks.
+            * `BLOCKLIST` - Test resources that are currently in appointments of one of the specified categories are not allowed to be used for execution tasks.
+          enum:
+            - ALLOWLIST
+            - BLOCKLIST
+        abortConfiguration:
+          type: string
+          description: |
+            Type of the abort configuration.
+            
+            * `NO_ABORT` - Execution tasks that are already running on a test resource that enters or leaves an appointment are not aborted.
+            * `WITH_TEARDOWN` - Execution tasks that are already running on a test resource that enters or leaves an appointment are aborted with teardown.
+            * `WITHOUT_TEARDOWN` - Execution tasks that are already running on a test resource that enters or leaves an appointment are aborted without teardown.
+          enum:
+            - NO_ABORT
+            - WITH_TEARDOWN
+            - WITHOUT_TEARDOWN
+
+    Uuid:
+      type: string
+      example: '59fba06a-a4af-403f-81db-77bb7ed1c966'
+      readOnly: true
+      format: uuid
+
+    ExecutionTaskRemoveRuleConfiguration:
+      type: object
+      description: |
+        Configuration of remove rule for execution tasks.
+        
+        When enabled execution tasks are regularly deleted when their creation date reaches the age of specified `retentionDays`.
+      properties:
+        enabled:
+          type: boolean
+          description: |
+            Enabled state for the remove rule for execution tasks.
+            
+            Initial value is `false`.
+          example: true
+        active:
+          type: boolean
+          description: |
+            If the project job that executes the remove rule is faulty, the remove rule is considered inactive.
+            
+            The remove rule may be reactivated by setting `active` to `true` using the PATCH method.
+            
+            Setting this value to `false` is not allowed and will result in a bad request response.
+            Setting this value to `true` while at the same time setting `enabled` to `false` will also result in a bad request response.
+          example: true
+        retentionDays:
+          type: integer
+          minimum: 1
+          description: |
+            The amount of days before execution tasks are deleted after they were created.
+            
+            Initial value is 30 days.
+          example: 42
+
+    SortDirection:
+      type: string
+      enum:
+        - ASC
+        - DESC
+      default: ASC
+
+  responses:
+    GeneralError:
+      description: |
+        An error occurred.
+
+        For example following status codes can be sent:
+        * 400: The request is invalid.
+        * 401: The user is unauthorized. Please check your authentication key.
+        * 403: The user does not have the necessary rights to do this action.
+        * 500: An internal error occurred. You maybe found a bug.
+          You can report bugs to [support@tracetronic.com](mailto:support@tracetronic.com).
+        * 503: The server is starting or is down for maintenance.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
