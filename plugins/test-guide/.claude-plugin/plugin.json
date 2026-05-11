@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "test.guide skills with bundled REST OpenAPI specs and flow.kit workflow authoring references.",
   "author": {
-    "name": "leili"
+    "name": "Blitzer Skills Maintainers"
   },
-  "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/test-guide",
-  "repository": "https://github.com/Blitzer207/blitzer-skills",
+  "homepage": "https://github.com/<github-owner>/blitzer-skills/tree/main/plugins/test-guide",
+  "repository": "https://github.com/<github-owner>/blitzer-skills",
   "license": "UNLICENSED",
   "keywords": [
     "test.guide",

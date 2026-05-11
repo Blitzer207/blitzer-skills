@@ -11,7 +11,7 @@ This repository exposes plugin marketplace metadata for both Codex and Claude Co
 After the changes are pushed to GitHub:
 
 ```text
-/plugin marketplace add Blitzer207/blitzer-skills
+/plugin marketplace add <github-owner>/blitzer-skills
 /plugin install ecu-test-api@blitzer-skills
 /plugin install test-guide@blitzer-skills
 /reload-plugins
@@ -20,7 +20,7 @@ After the changes are pushed to GitHub:
 For local testing from this checkout:
 
 ```text
-/plugin marketplace add C:\Users\leili\Desktop\Bitbucket-Repos\13-github-projects\07-blitzer-skills
+/plugin marketplace add <repo-root>
 /plugin install ecu-test-api@blitzer-skills
 /plugin install test-guide@blitzer-skills
 /reload-plugins

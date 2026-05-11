@@ -34,7 +34,7 @@ Claude Code plugin metadata lives in:
 After this repository is pushed to GitHub, add and install it in Claude Code with:
 
 ```text
-/plugin marketplace add Blitzer207/blitzer-skills
+/plugin marketplace add <github-owner>/blitzer-skills
 /plugin install ecu-test-api@blitzer-skills
 /reload-plugins
 ```
@@ -42,7 +42,7 @@ After this repository is pushed to GitHub, add and install it in Claude Code wit
 For local testing from this checkout:
 
 ```text
-/plugin marketplace add C:\Users\leili\Desktop\Bitbucket-Repos\13-github-projects\07-blitzer-skills
+/plugin marketplace add <repo-root>
 /plugin install ecu-test-api@blitzer-skills
 /reload-plugins
 ```
