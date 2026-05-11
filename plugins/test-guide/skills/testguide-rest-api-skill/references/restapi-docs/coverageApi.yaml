@@ -1,0 +1,1210 @@
+openapi: 3.0.2
+info:
+  title: test.guide Coverage API
+  description: API for calculating test case coverages in test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 3.7.0
+servers:
+  - url: /api
+    description: this test.guide server
+  - url: /{context-path}/api
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: []
+  - BearerAuth: [ ]
+paths:
+  /coverage:
+    post:
+      description: Start a new coverage calculation
+      operationId: start-coverage-task
+      tags: [ 'coverage' ]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CoverageInputData"
+      responses:
+        '201':
+          description: A new Coverage calculation task was successfully started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskRef"
+  /coverage/config:
+    post:
+      description: Deprecated, please use '/coverage/filterdefinitions/' endpoint instead
+      operationId: upload-coverage-filterdefinition
+      tags: [ 'coverage' ]
+      deprecated: true
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+        - name: name
+          in: query
+          description: Name of the coverage filter definition
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+          example: Product specification
+        - name: publicUse
+          in: query
+          description: If public is set, then the filter definition is visible and usable for all colleagues in the project. 
+          schema:
+            type: boolean
+            default: false
+        - name: description
+          in: query
+          description: Description of the filter
+          schema:
+            type: string
+          example: Coverage for the multimedia requirements for the next release. 
+        - name: category
+          in: query
+          description: The category determines how the filter should be ordered in the tree display.
+          schema:
+            type: string
+          example: Requirements/Multimedia/
+      requestBody:
+        description: The coverage filter definition that shall be persisted by test.guide
+        required: true
+        content:
+          application/xml:
+            schema:
+              type: string
+              format: binary
+              description: For the XML schema of a coverage filter config, go to "Test case coverage" > "Filter definition" in test.guide
+            example:
+              '<filterTreeV2><node><label>Requirements</label><leaf><label>Requirement 1</label></leaf><leaf><label>Requirement 2</label></leaf></node></filterTreeV2>'
+      responses:
+        '201':
+          description: A new coverage filter definition was successfully stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageFilterDefinitionUUID"
+        '409':
+          description: The operation was not successful because a public coverage filter with the name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonUniqueConfigResponse"
+        '412':
+          description: The definition is not valid or the specified category is a protected area where no user definitions can be stored. 
+  
+  /coverage/config/{id}:
+    put:
+      description: Deprecated, please use '/coverage/filterdefinitions/' endpoint instead
+      operationId: update-coverage-filterdefinition
+      tags: [ 'coverage' ]
+      deprecated: true
+      parameters:
+        - name: id
+          in: path
+          description: ID of the coverage filter definition.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: name
+          in: query
+          description: Name of the coverage filter definition
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+          example: Product specification
+        - name: publicUse
+          in: query
+          description: If public is set, then the filter definition is visible and usable for all colleagues in the project. 
+          schema:
+            type: boolean
+            default: false
+        - name: description
+          in: query
+          description: Description of the filter
+          schema:
+            type: string
+          example: Coverage for the multimedia requirements for the next release. 
+        - name: category
+          in: query
+          description: The category determines how the filter should be ordered in the tree display.
+          schema:
+            type: string
+          example: Requirements/Multimedia/
+      requestBody:
+        description: The coverage filter definition that shall be persisted by test.guide
+        required: true
+        content:
+          'application/xml':
+            schema:
+              type: string
+              format: binary
+              description: For the XML schema of a coverage filter config, go to "Test case coverage" > "Filter definition" in test.guide
+            example:
+              '<filterTreeV2><node><label>Requirements</label><leaf><label>Requirement 1</label></leaf><leaf><label>Requirement 2</label></leaf></node></filterTreeV2>'
+      responses:
+        '201':
+          description: A coverage filter definition was successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageFilterDefinitionUUID"
+        '404':
+          description: No coverage filter definition found with the given ID.
+        '412':
+          description: The definition is not valid or the specified category is a protected area where no user definitions can be stored. 
+
+    get:
+      description: Deprecated, please use '/coverage/filterdefinitions/' endpoint instead
+      operationId: download-coverage-filterdefinition
+      tags: [ 'coverage' ]
+      deprecated: true
+      parameters:
+        - name: id
+          in: path
+          description: ID of the coverage filter definition.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Download of the coverage filter definition.
+          content:
+            'application/xml':
+              schema:
+                type: object
+        '404':
+          description: No coverage filter definition found with the given ID.
+        default:
+          description: In case of an error a JSON message may be returned.
+          content:
+            'application/json': {}
+  /coverage/filterdefinitions:
+    post:
+      description: Upload a coverage filter definition
+      operationId: upload-coverage-filter-definition
+      tags: [ 'coverage' ]
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+        - name: name
+          in: query
+          description: Name of the coverage filter definition
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+          example: Product specification
+        - name: publicUse
+          in: query
+          description: If public is set, then the filter definition is visible and usable for all colleagues in the project. 
+          schema:
+            type: boolean
+            default: false
+        - name: description
+          in: query
+          description: Description of the filter
+          schema:
+            type: string
+          example: Coverage for the multimedia requirements for the next release. 
+        - name: category
+          in: query
+          description: The category determines how the filter should be ordered in the tree display.
+          schema:
+            type: string
+          example: Requirements/Multimedia/
+      requestBody:
+        description: The coverage filter definition that shall be persisted by test.guide
+        required: true
+        content:
+          'application/xml':
+            schema:
+              type: string
+              format: binary
+              description: For the XML schema of a coverage filter config, go to "Test case coverage" > "Filter definition" in test.guide
+            example:
+              '<filterTreeV2><node><label>Requirements</label><leaf><label>Requirement 1</label></leaf><leaf><label>Requirement 2</label></leaf></node></filterTreeV2>'
+      responses:
+        '201':
+          description: A new coverage filter definition was successfully stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageFilterDefinitionUUID"
+        '409':
+          description: The operation was not successful because a public coverage filter with the name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NonUniqueConfigResponse"
+        '412':
+          description: The definition is not valid or the specified category is a protected area where no user definitions can be stored. 
+    get:
+      description: Get all accessible coverage definitions
+      operationId: get-all-coverage-filter-definitions
+      tags: [ 'coverage' ]
+      deprecated: true
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: Listing of accessible coverage filter definitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessibleCoverageDefinition"
+  /coverage/filterdefinitions/filter:
+    get:
+      description: Get filtered coverage definitions
+      operationId: Get-filtered-coverage-definitions
+      tags: [ 'coverage' ]
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+        - name: type
+          in: query
+          description: The type of the filter coverage definition.
+          required: true
+          schema:
+            $ref: '#/components/schemas/CoverageType'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Listing of filtered coverage filter definitions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessibleCoverageDefinition"
+  /coverage/filterdefinitions/{id}:
+    put:
+      description: Update a coverage filter definition
+      operationId: update-coverage-filter-definition
+      tags: [ 'coverage' ] 
+      parameters:
+        - name: id
+          in: path
+          description: ID of the coverage filter definition.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: name
+          in: query
+          description: Name of the coverage filter definition
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+          example: Product specification
+        - name: publicUse
+          in: query
+          description: If public is set, then the filter definition is visible and usable for all colleagues in the project. 
+          schema:
+            type: boolean
+            default: false
+        - name: description
+          in: query
+          description: Description of the filter
+          schema:
+            type: string
+          example: Coverage for the multimedia requirements for the next release. 
+        - name: category
+          in: query
+          description: The category determines how the filter should be ordered in the tree display.
+          schema:
+            type: string
+          example: Requirements/Multimedia/
+      requestBody:
+        description: The coverage filter definition that shall be persisted by test.guide
+        required: true
+        content:
+          'application/xml':
+            schema:
+              type: string
+              format: binary
+              description: For the XML schema of a coverage filter config, go to "Test case coverage" > "Filter definition" in test.guide
+            example:
+              '<filterTreeV2><node><label>Requirements</label><leaf><label>Requirement 1</label></leaf><leaf><label>Requirement 2</label></leaf></node></filterTreeV2>'
+      responses:
+        '201':
+          description: A coverage filter definition was successfully updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageFilterDefinitionUUID"
+        '404':
+          description: No coverage filter definition found with the given ID.
+        '412':
+          description: The definition is not valid or the specified category is a protected area where no user definitions can be stored. 
+
+    get:
+      description: Download a coverage filter definition
+      operationId: download-coverage-filter-definition
+      tags: [ 'coverage' ]
+      parameters:
+        - name: id
+          in: path
+          description: ID of the coverage filter definition.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Download of the coverage filter definition.
+          content:
+            'application/xml':
+              schema:
+                type: string
+                format: binary
+                description: For the XML schema of a coverage filter config, go to "Test case coverage" > "Filter definition" in test.guide
+              example:
+                '<filterTreeV2><node><label>Requirements</label><leaf><label>Requirement 1</label></leaf><leaf><label>Requirement 2</label></leaf></node></filterTreeV2>'
+        '404':
+          description: No coverage filter definition found with the given ID.
+        default:
+          description: In case of an error a JSON message may be returned.
+          content:
+            'application/json': {}
+            
+    delete:
+      description: Delete a coverage filter definition
+      operationId: delete-coverage-filter-definition
+      tags: [ 'coverage' ]
+      parameters:
+        - name: id
+          in: path
+          description: ID of the coverage filter definition.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: The coverage filter definition was successfully deleted.         
+        '404':
+          description: No coverage filter definition found with the given ID.
+            
+  /coverage/filterdefinitions/import/alm:
+    post:
+      description: Create a coverage definition from ALM
+      operationId: import-alm
+      tags: [ 'coverage' ]
+      requestBody:
+        description: The input parameters used to identify the ALM tool, a test suite id and describe the new coverage.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportAlmData'
+      responses:
+        '200':
+          description: Download of the created coverage filter definition.
+          content:
+            'application/xml':
+              schema:
+                type: object
+        '400':
+          description: |
+            The provided parameterization didn't yield a coverage filter definition. 
+            Details are included within the error message.
+
+  /coverage/externalTestGuideInstances:
+    get:
+      description: |
+        Retrieve information about all external test.guide instances that are configured in the specified test.guide
+        project. These instances can be used to run coverage calculations on.
+      operationId: get-external-test.guide-instances
+      tags: [ 'coverage' ]
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      
+      responses:
+        '200':
+          description: |
+            Information about the external test.guide instances of the specified project was successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TestGuideInstance"
+                  
+  /coverage/externalTestGuideInstances/{id}:
+    get:
+      description: |
+        Retrieve information about a particular external test.guide instance which can be used to run coverage
+        calculations on.
+      operationId: get-external-test.guide-instance
+      tags: [ 'coverage' ]
+      parameters:
+        - name: id
+          in: path
+          description: ID of the external test.guide instance.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Information about the external test.guide instance was successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestGuideInstance"
+                
+  /coverage/{taskId}/status:
+    get:
+      tags: [ 'coverage' ]
+      summary: Retrieve progress information about a given task.
+      operationId: get-coverage-status
+      parameters: 
+        - $ref: "#/components/parameters/taskId"
+      responses:
+        '200':
+          description: Coverage calculation state was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskStatus'
+        '404':
+          description: No task found with the given ID.
+  /coverage/{taskId}:
+    get:
+      description: Get the results of a coverage calculation
+      operationId: get-coverage-results
+      parameters:
+        - $ref: "#/components/parameters/taskId"
+        - name: useReviewVerdict
+          in: query
+          description: if true, review verdicts will be used when aggregating the verdicts in the coverage tree
+          schema:
+            type: boolean
+            default: true
+      tags:
+        - coverage
+      responses:
+        '200':
+          description: The result of a coverage calculation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageOutputData"
+        '204':
+          description: The calculation is still running
+        '404':
+          description: TaskId unknown
+  /coverage/{taskId}/export/atx:
+    get:
+      description: Get the atx documents of a coverage calculation
+      operationId: export-coverage-results-to-atx
+      parameters:
+        - $ref: "#/components/parameters/taskId"
+        - name: includeAttributes
+          in: query
+          description: Test case attributes which are to be exported. 
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          example: ["Designer", "isTest?ase", "Req*"]
+        - name: includeConstants
+          in: query
+          description: Test case constants which are to be exported.
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          example: ["Engine", "Mile?tone", "Release_*"]
+        - name: exportReviews
+          in: query
+          description: True, if the last review for test case execution should be exported, otherwise false.
+          required: false
+          schema:
+            default: false
+            type: boolean
+        - name: exportExecutionTime
+          in: query
+          description: True if the execution times of the test case executions should be exported, false otherwise.
+          required: false
+          schema:
+            default: True
+            type: boolean 
+      tags:
+        - coverage
+      responses:
+        '200':
+          description: Download of the coverage atx documents.
+          content:
+            'application/zip':
+              schema:
+                type: object
+        '204':
+          description: The calculation of this task ID is still running
+        '404':
+          description: No overage result found with the given task ID
+        '410':
+          description: Task has been cancelled.
+
+components:
+  parameters:
+    projectId:
+      name: projectId
+      in: query
+      description: ID of the test.guide project
+      required: true
+      schema:
+        type: integer
+        default: 1
+    taskId:
+      name: taskId
+      in: path
+      description: ID of the coverage calculation task
+      example: 38400000-8cf0-11bd-b23e-10b96e4ef00d
+      required: true
+      schema:
+        type: string
+    offset:
+      name: offset
+      in: query
+      description: The number of items to skip before starting to collect the result set.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    limit:
+      name: limit
+      in: query
+      description: The number of items to return.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 250
+        default: 100
+  schemas:
+
+    CoverageFilterDefinitionUUID:
+      type: object
+      readOnly: true
+      properties:
+        filterDefinitionUUID:
+          type: string
+          format: uuid 
+    
+    NonUniqueConfigResponse:
+      description: |
+        This response indicates that a public coverage filter config with the name already exists and therefore the 
+        POST operation was not successful. Instead, the existing coverage filter config, whose UUID is stated in the
+        response body, may be overwritten using a PUT /coverage/config request. 
+      type: object
+      readOnly: true
+      properties:
+        messsage:
+          type: string
+        existingConfig:
+          $ref: "#/components/schemas/CoverageFilterDefinitionUUID" 
+
+    CoverageInputData:
+      description: Container for all input data of a coverage calculation.
+      type: object
+      properties:
+        projectId:
+          description: ID of the project in which the coverage calculation shall be run.
+          type: integer
+        filterDefinitionUUID:
+          type: string
+          format: uuid
+        baseFilterParameters:
+          $ref: "#/components/schemas/CoverageBaseFilterParameters"
+        placeholderValues:
+          description: |
+            A mapping from placeholder name to an array of values used to fill the placeholders of the coverage filter
+            definition.
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        scopeFilter:
+          description: |
+            Allows to filter the scopes in the coverage result.
+          type: array
+          items:
+             $ref: "#/components/schemas/KeyValuesFilter" 
+        testGuideInstances:
+          description: | 
+            Optionally the list of the IDs of the preconfigured external test.guide instances the coverage calculation shall be
+            run on. The calculation always implicitly runs on the local instance as well.
+          type: array
+          items:
+            type: integer
+            format: int64
+      required: [ 'projectId', 'filterDefinitionUUID', 'baseFilterParameters' ]
+
+    TestGuideInstance:
+      description: Information about a project on an external test.guide instance.
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID of the test.guide instance.
+        name:
+          type: string
+          description: Name of the test.guide instance as configured on the 'Management tools' page of the project.
+        url:
+          type: string
+          description: Base-URL of the external test.guide instance.
+        projectId:
+          type: integer
+          description: ID of the project on the external test.guide instance
+ 
+    CoverageBaseFilterParameters:
+      description: Filter parameters that the coverage filter definition builds upon. 
+      type: object
+      properties:
+        minExecutionTimestamp:
+          description: |
+            The earliest execution timestamp that a test case execution is allowed to have in oder to be included in
+            the coverage.
+          type: string
+          format: date-time
+        maxExecutionTimestamp:
+          description: |
+            The latest execution timestamp that a test case execution is allowed to have in oder to be included in the
+            coverage.
+          type: string
+          format: date-time
+        testPlanName:
+          description: |
+            The name of a test plan of which each test case execution has to be a part in order to be included in the
+            coverage. Must be omitted, if the coverage filter definition contains test plan name predicates.
+          type: string
+        hideInvalidRuns:
+          description: |
+            If true, only test case executions not marked as invalid by a review are included in the coverage result. 
+            This parameter is deprecated and shouldn't be used anymore. It is replaced by 'invalidRuns'.
+          default: true
+          type: boolean
+          deprecated: true
+        invalidRuns:
+          description: |
+            Specify how test case executions not marked as invalid by a review are included in the coverage result.
+          default: NO_CONSTRAINT
+          type: string
+          enum:
+            - NO_CONSTRAINT
+            - ONLY_VALID
+            - ONLY_INVALID
+        releaseId:
+          description: |
+            Deprecated: You have to use the test case tag set id of a release.
+          type: number
+          format: integer64
+          deprecated: true
+        testCaseTagSetId:
+          description: |
+            The id of a test case tag set in which each test case execution has to be contained in order to be included
+            in the coverage result.
+          type: number
+          format: integer64
+      required: [ 'minExecutionTimestamp', 'maxExecutionTimestamp' ]
+      
+    AccessibleCoverageDefinition:
+      type: object
+      readOnly: true
+      properties:
+        filterDefinitionUUID:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        publicUse:
+          type: boolean
+        link:
+          $ref: "#/components/schemas/Link"
+    
+    TaskRef:
+      type: object
+      readOnly: true
+      properties:
+        taskId:
+          type: string
+
+    TaskStatus:
+      type: object
+      readOnly: true
+      properties:
+        name:
+          type: string
+        progress:
+          $ref: "#/components/schemas/Progress"
+        done:
+          type: boolean
+     
+    Progress:
+      type: object
+      properties:
+        value:
+          type: integer
+          format: int64
+        maxValue:
+          type: integer
+          format: int64
+    
+    CoverageOutputData:
+      type: object
+      readOnly: true
+      properties:
+        resultTree:
+          $ref: "#/components/schemas/CoverageTreeComposite"
+        instanceErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                format: int64
+                description: ID of the test.guide instance where the error occurred
+              errorMessage:
+                type: string
+                
+    CoverageTreeComponent:
+      type: object
+      properties:
+        dType:
+          type: string
+        label:
+          type: string
+        url:
+          type: string
+        scopes:
+          type: object
+          additionalProperties:
+            type: string
+        properties:
+          type: object
+          additionalProperties:
+            type: string
+        filterPredicates:
+          type: array
+          items:
+            $ref: "#/components/schemas/FilterPredicate"
+        aggregatedVerdict:
+          $ref: "#/components/schemas/Verdict"
+      discriminator:
+        propertyName: dType
+      required: [label, dType]
+           
+    CoverageTreeComposite:
+      allOf:
+        - $ref: "#/components/schemas/CoverageTreeComponent"
+        - type: object
+          properties:
+            children:
+              type: array
+              items:
+                $ref: "#/components/schemas/CoverageTreeComponent"
+    
+    CoverageTreeLeaf:
+      allOf:
+        - $ref: "#/components/schemas/CoverageTreeComponent"
+        - type: object
+          properties:
+            result:
+              $ref: "#/components/schemas/CoverageFilterResult"
+    
+    FilterPredicate:
+      type: object
+      properties:
+        dType:
+          type: string
+      discriminator:
+        propertyName: dType
+      required: [ dType ]
+            
+    AttributePredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            key:
+              type: string
+            values:
+              type: array
+              items:
+                type: string
+            negated:
+              type: boolean
+    
+    ConstantPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            key:
+              type: string
+            values:
+              type: array
+              items:
+                type: string
+            negated:
+              type: boolean
+    
+    ArgumentExprPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            expression:
+              type: string
+              
+    AtxIdPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            atxIds:
+              type: array
+              items:
+                type: integer
+                format: int64
+              
+    VerdictsPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            verdicts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Verdict"
+              
+    ReleaseIdPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            releaseIds:
+              type: array
+              items:
+                type: integer
+                format: int64
+
+    ReviewCommentPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            comment:
+              type: string
+
+    ReviewSummaryPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            summary:
+              type: string
+    
+    ReviewCustomEvaluationPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            customEvaluation:
+              type: string
+    
+    ReviewTagsPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
+
+    ReviewTicketsPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            tickets:
+              type: array
+              items:
+                type: string
+
+    ReviewVerdictsPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            verdicts:
+              type: array
+              items:
+                $ref: "#/components/schemas/Verdict"
+
+    ReviewDefectClassPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            defectClass:
+              type: string
+
+    ReviewDefectPriorityPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            defectPriority:
+              type: string
+
+    ReviewExistencePredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            reviewExistence:
+              type: string
+              enum: [NO_CONSTRAINTS, EXISTENT, NON_EXISTENT]
+
+    ReviewIncludeObsoletePredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            includeObsolete:
+              type: boolean
+
+    TestCasePredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            testCaseName:
+              type: string
+
+    ParameterSetPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            parameterSetName:
+              type: string
+
+    TestPlanPredicate:
+      allOf:
+        - $ref: "#/components/schemas/FilterPredicate"
+        - type: object
+          properties:
+            testPlanNames:
+              type: array
+              items:
+                type: string
+    
+    CoverageFilterResult:
+      type: object
+      properties:
+        testCaseExecutions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCaseExecution"
+        testPlans:
+          type: array
+          items:
+            type: string
+             
+    TestCaseExecution:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        testCaseName:
+          type: string
+        parameterSetName:
+          type: string
+        executionStart:
+          type: string
+          format: date-time
+        verdict:
+          $ref: "#/components/schemas/Verdict"
+        reviewVerdict:
+          $ref: "#/components/schemas/Verdict"
+        instanceId:
+          type: integer
+          format: int64
+          description: |
+            ID of the test.guide instance where the test case execution was found. Absent when the test case execution
+            was found on the local instance.
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/Link"
+        
+    Verdict:
+      type: string
+      enum: [NONE, PASSED, INCONCLUSIVE, FAILED, ERROR]
+      
+    Link:
+      description: A link object as described by https://json-schema.org/draft/2019-09/json-schema-hypermedia.html#ldo
+      type: object
+      properties:
+        rel:
+          type: string
+          enum: [ self ]
+          description: The Relation represented by this link
+        href:
+          description: The target URI of the link
+          type: string
+      required: [ rel, href ]
+
+    ImportAlmData:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          description: Id of the project on the external test.guide instance
+        toolConfigId:
+          type: integer
+          format: int64
+          description: Id of the ALM tool config
+        testSuiteId:
+          type: string
+          description: Id of the test suite
+        environment:
+          type: string
+          description: Environment (Optional parameter for RQM)
+        iteration:
+          type: string
+          description: Iteration (Optional parameter for RQM)
+        importStrategy:
+          type: string
+          description: Filter strategy used to find testcases
+          enum:
+           - TESTCASE_NAME_MAPPING
+           - TESTSUITE_TESTCASE_ID_MAPPING
+           - TESTSCRIPT_ID_MAPPING
+           - CUSTOM_CONSTANT_MAPPING
+           - CUSTOM_ATTRIBUTE_MAPPING
+          default: TESTCASE_NAME_MAPPING
+        customConstantName:
+          type: string
+          description: Parameter needed for strategy 'CUSTOM_CONSTANT_MAPPING', name of a constant which is used to reference (by ID) the test case of an ALM tool
+        customAttributeName:
+          type: string
+          description: Parameter needed for strategy 'CUSTOM_ATTRIBUTE_MAPPING, name of an attribute which is used to reference (by ID) the test case of an ALM tool
+        constants:
+          type: array
+          description: Constants to filter for, available wildcards are "*" for any characters and "?" as placeholder for a single character
+          items:
+            $ref: '#/components/schemas/KeyValuesPair'
+        attributes:
+          type: array
+          description: Attributes to filter for, available wildcards are "*" for any characters and "?" as placeholder for a single character
+          items:
+            $ref: '#/components/schemas/KeyValuesPair'
+        testPlanNames:
+          type: array
+          description: Test plan names by which filtering is performed
+          items:
+            type: string
+        testCaseNames:
+          type: array
+          description: Test case names by which filtering is performed
+          items:
+            type: string
+        constainsVerdicts:
+          type: array
+          description: Verdicts by which filtering is performed, at least on value must be given
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/Verdict"
+        labelingStrategy:
+          description: Strategy to label the coverage leafs
+          type: string
+          enum:
+           - TEST_CASE_NAME
+           - TEST_CASE_ID_AND_NAME
+          default: TEST_CASE_NAME
+      required:
+       - projectId
+       - toolConfigId
+       - testSuiteId
+       - importStrategy
+       - constainsVerdicts
+       - labelingStrategy
+
+    KeyValuesPair:
+      type: object
+      properties:
+        name:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+            
+    KeyValuesFilter:
+      type: object
+      required: [ 'key', 'values' ]
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        negated:
+          type: boolean
+          default: false
+
+    CoverageType:
+      type: string
+      enum:
+        - COVERAGE
+        - RELEASE_COVERAGE
+        - EXAMPLE_COVERAGE
+            
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

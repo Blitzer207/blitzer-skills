@@ -1,0 +1,726 @@
+openapi: 3.0.2
+info:
+  title: test.guide Platform API
+  description: API for handling project and system settings in test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.7.0
+servers:
+  - url: /api/platform
+    description: this test.guide server
+  - url: /{context-path}/api/platform
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/platform'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+
+  /projects:
+    post:
+      tags:
+        - platform
+      summary: Create project
+      description: Creates a new project. The permission server manager is required.
+      operationId: create-project
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  description: Project name
+                  type: string
+                  example: System Tests
+                description:
+                  description: Short optional description of the project
+                  type: string
+                  example: Tests for the entire system with all subsystems integrated
+                support:
+                  description: |
+                    Define an optional support contact.                    
+                    Could either be a mail, than the "mailto:" prefix must be used.                    
+                    Alternatively a support link can be defined, which must be a valid link.
+                  type: string
+                  example: "mailto:support@company.com or https://company.supportportal.com"
+                icon:
+                  description: Optional project icon
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Project ID of the newly created project
+          content:
+            'application/json':
+              schema:
+                type: integer
+                example: 42
+        '401':
+          description:  No valid authentication was included in the request
+        '403':
+          description: User is missing the necessary permission
+
+
+  /projects/{projectId}:
+    get:
+      tags:
+        - platform
+      summary: Retrieve project data
+      operationId: retrieve-project
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: Project was successfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ProjectComponent'
+              example:
+                projectId: 126
+                projectName: MyProject
+                projectDescription: My project description
+
+        '401':
+          description:  No valid authentication was included in the request
+        '403':
+          description: User is neither a member of a project with the given ID nor a server manager
+        '404':
+          description: The project could not be found
+
+  /projects/{projectId}/roles:
+    get:
+      deprecated: true
+      tags:
+        - platform
+      summary: Retrieve the project roles for a project
+      description: Please use the equivalent endpoint /roles in the User Management API
+      operationId: get-project-roles
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: Project roles
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectRole'
+        '401':
+          description:  No valid authentication was included in the request
+        '403':
+          description: User is neither a member of a project with the given ID nor a server manager
+        '404':
+          description: The project could not be found
+          
+  /projects/{projectId}/notification/mail:
+    post:
+      tags:
+        - platform
+      summary: Send mails for a project
+      description: |
+        Allows you to send mails to project members.
+        You can either send a mail to all members of the project or address specific users directly by user name or their
+        project roles within the project.
+        
+        You must be an active member in the project you want to send the mail to.
+        Also you are only allowed to send 1 mail per minute and project to prevent misuse.
+        Bursts of up to 10 mails are possible.
+      operationId: send-project-notification
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      requestBody:
+        description: The notification body.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectNotification"
+      responses:
+        '200':
+          description: Mail successfully sent
+        '202':
+          description: Mail successfully sent but some invalid project roles or users were skipped
+        '400':
+          description: Project role IDs must belong to the project and user names must be members of the project
+        '401':
+          description: No valid authentication was included in the request
+        '403':
+          description: Missing active project membership of client
+        '412':
+          description: test.guide is not configured for dispatching emails
+        '500':
+          description: Mail could not be sent due to internal errors.
+          
+  /notification/banner:
+    post:
+      summary: Activate the page notification banner
+      description: Sets a notification message with an expiration date.
+      operationId: set-notification-banner
+      tags:
+        - platform
+      requestBody:
+        description: The notification body.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InfoBanner"
+      responses:
+        '200':
+          description: Notification set
+    delete:
+      summary: Deactivate the page notification banner
+      description: Unsets a notification message.
+      operationId: unset-notification-banner
+      tags:
+        - platform
+      responses:
+        '200':
+          description: Notification unset
+          
+  /notification/mail:
+    post:
+      summary: Send notifications to users
+      description: Only users with the server management permission may use this API.
+      operationId: send-notifications
+      tags:
+        - platform
+      requestBody:
+        description: The notification body.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Notification"
+      responses:
+        '200':
+          description: Notification sent
+        '412':
+          description: test.guide is not configured for dispatching emails
+          
+  /globalremoverules/artifacts:
+    get:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Retrieve the current global remove rule for artifacts.
+      operationId: get-global-artifact-remove-rule
+      responses:
+        '200':
+          description: Global artifact remove rule
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/GlobalArtifactRemoveRule'
+        default:
+          $ref: '#/components/responses/DefautError'
+    put:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Update the current global remove rule for artifacts.
+      operationId: update-global-artifact-remove-rule
+      requestBody:
+        description: The new global remove rule for artifacts.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalArtifactRemoveRule'
+      responses:
+        '204':
+          description: The global remove rule was successfully updated.
+        default:
+          $ref: '#/components/responses/DefautError'
+          
+  /globalremoverules/reports:
+    get:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Retrieve the current global remove rule for reports.
+      operationId: get-global-report-remove-rule
+      responses:
+        '200':
+          description: Global report remove rule
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/GlobalReportRemoveRule'
+        default:
+          $ref: '#/components/responses/DefautError'
+    put:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Update the current global remove rule for reports.
+      operationId: update-global-report-remove-rule
+      requestBody:
+        description: The new global remove rule for reports.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalReportRemoveRule'
+      responses:
+        '204':
+          description: The global remove rule was successfully updated.
+        default:
+          $ref: '#/components/responses/DefautError'
+          
+  /globalremoverules/releases:
+    get:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Retrieve the current global remove rule for releases.
+      operationId: get-global-release-remove-rule
+      responses:
+        '200':
+          description: Global release remove rule
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/GlobalReleaseRemoveRule'
+        default:
+          $ref: '#/components/responses/DefautError'
+    put:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Update the current global remove rule for releases.
+      operationId: update-global-release-remove-rule
+      requestBody:
+        description: The new global remove rule for releases.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalReleaseRemoveRule'
+      responses:
+        '204':
+          description: The global remove rule was successfully updated.
+        default:
+          $ref: '#/components/responses/DefautError'
+
+  /globalremoverules/qgateplans:
+    get:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Retrieve the current global remove rule for Q-gate plans.
+      operationId: get-global-qgateplan-remove-rule
+      responses:
+        '200':
+          description: Global Q-gate plan remove rule
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/GlobalQGatePlanRemoveRule'
+        default:
+          $ref: '#/components/responses/DefautError'
+    put:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Update the current global remove rule for Q-gate plans.
+      operationId: update-global-qgateplan-remove-rule
+      requestBody:
+        description: The new global remove rule for Q-gate plans.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalQGatePlanRemoveRule'
+      responses:
+        '204':
+          description: The global remove rule was successfully updated.
+        default:
+          $ref: '#/components/responses/DefautError'
+          
+  /globalremoverules/trappointments:
+    get:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Retrieve the current global remove rule for test resource appointments.
+      operationId: get-global-tr-appointments-remove-rule
+      responses:
+        '200':
+          description: Global test resource appointment remove rule 
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/GlobalTrAppointmentRemoveRule'
+        '409':
+          description: There is no monitoring database configured.
+        default:
+          $ref: '#/components/responses/DefautError'
+    put:
+      tags:
+        - global-remove-rules
+      summary: Development preview - Update the current global remove rule for test resource appointments.
+      operationId: update-global-tr-appointments-remove-rule
+      requestBody:
+        description: The new global remove rule for test resource appointments.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GlobalTrAppointmentRemoveRule'
+      responses:
+        '204':
+          description: The global remove rule was successfully updated.
+        '409':
+          description: There is no monitoring database configured.
+        default:
+          $ref: '#/components/responses/DefautError'
+
+  /maintenance-mode:
+    put:
+      summary: Configure the maintenance mode
+      description: Only users with the server management permission may use this API.
+      operationId: configure-maintenance-mode
+      tags:
+        - platform
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaintenanceModeConfiguration'
+      responses:
+        204:
+          description: Maintenance mode configured.
+
+  /usagemetrics:
+    get:
+      tags:
+        - platform
+      summary: Retrieve the usage metrics of the instance.
+      description: |
+        Returns the usage metric datapoints of the instance, starting with the newest ones.
+        This endpoint requires global permission 'METRICS_ACCESS'.
+      operationId: get-usage-metrics
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Usage metric data points
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsageMetricDataPoint'
+
+components:
+  parameters:
+    projectId:
+      name: projectId
+      description: The ID of the test.guide project
+      in: path
+      required: true
+      schema:
+        type: integer
+      example: 42
+
+    offset:
+      name: offset
+      in: query
+      description: The number of items to skip before starting to collect the result set.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    limit:
+      name: limit
+      in: query
+      description: The number of items to return.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+
+  schemas:
+
+    InfoBanner:
+      type: object
+      properties:
+        message:
+          type: string
+          maxLength: 2048
+          description: The notification message display atop every page.
+        expirationDate:
+          type: string
+          format: date-time
+          description: After this date the banner will not be displayed.
+      required:
+        - message
+        - expirationDate
+
+    ProjectComponent:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          description: The ID of the test.guide project
+        projectName:
+          type: string
+          maxLength: 64
+          description: The name of the test.guide project
+        projectDescription:
+          type: string
+          maxLength: 4096
+          description: The description of the test.guide project
+        isActive:
+          type: boolean
+          description: True, if the project is activated, false if the project is deactivated
+        deleted:
+          $ref: "#/components/schemas/ProjectDeleteStatus"
+      required:
+        - projectId
+        - projectName
+
+    ProjectDeleteStatus:
+      type: string
+      description: |
+        Project deletion status:
+        * `IN_PROGRESS` - deletion is in progress, but not finished yet
+        * `FINISHED` - deletion is finished
+      enum:
+        - IN_PROGRESS
+        - FINISHED
+
+    Notification:
+      type: object
+      properties:
+        subject:
+          type: string
+          description: The notification subject
+        message:
+          type: string
+          description: The notification message allows the use of basic HTML tags for styling the mail. However, unknown or forbidden tags such as &lt;script&gt; are removed from the message.
+          example: "Announcement of a <b>maintenance window</b> for the database on..."
+        appointment:
+          $ref: "#/components/schemas/Appointment"
+        projects:
+          type: array
+          items:
+            type: integer
+          description: List of projects to notify. When omitted all projects are notified.
+        onlyProjectManagers:
+          type: boolean
+          description: Enable, if only project managers should receive the notification.
+          default: false
+      required: [ subject, message ]
+
+    ProjectNotification:
+      type: object
+      properties:
+        subject:
+          type: string
+          description: The notification subject
+          example: "test.guide Report Update"
+        message:
+          type: string
+          description: The notification message allows the use of basic HTML tags for styling the mail. However, unknown or forbidden tags such as &lt;script&gt; are removed from the message.
+          example: "Hi, there are <b>new updates</b> in your report ..."
+        projectRoleIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: Optional list of project role IDs to notify. When this key and projectUsers are omitted, all users within the project are notified.
+          example: [ 4, 7, 11 ]
+        projectUsers:
+          type: array
+          items:
+            type: string
+          description: Optional list of specific usernames to notify. When this key and projectRoleIds are omitted, all users within the project are notified.
+          example: [ "alice", "bob" ]
+      required: [ subject, message ]
+
+    Appointment:
+      type: object
+      description: A time frame for a notification.
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: Appointment start time
+        end:
+          type: string
+          format: date-time
+          description: Appointment end time
+      required: [ start, end ]
+
+    MaintenanceModeConfiguration:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: true, if the maintenance mode should be enabled, false if it should be disabled
+        retry-after:
+          type: integer
+          minimum: 5
+          description: |
+            When enabling maintenance mode, this parameter defines the time span (in minutes)
+            after which clients (instructed via a retry-after header) should retry their requests.
+        reason:
+          type: string
+          maxLength: 4096
+          description: |
+            The message defined using this parameter will be communicated to the clients trying
+            to access test.guide meanwhile maintenance mode is enabled.
+      required: [ enabled ]
+
+    ProjectRole:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 4
+        name:
+          type: string
+          example: Test Manager
+
+    GlobalArtifactRemoveRule:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: true, if the global artifact remove rule is enabled; false if it is disabled
+        retentionDays:
+          type: integer
+          example: 700
+          description: defines the number of days after the last access when an artifact is automatically removed
+      required: [ enabled, retentionDays ]
+
+    GlobalReportRemoveRule:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: true, if the global report remove rule is enabled; false if it is disabled
+        retentionDays:
+          type: integer
+          example: 700
+          description: defines the number of days after execution when a report is automatically removed
+      required: [enabled, retentionDays]
+
+    GlobalReleaseRemoveRule:
+      type: object
+      description: |
+        Release remove rule, which deletes all releases (including locked releases) with a release date before the retention period from all projects.
+      properties:
+        enabled:
+          type: boolean
+          description: true, if the global release remove rule is enabled; false if it is disabled
+        retentionDays:
+          type: integer
+          example: 700
+          description: defines the number of days since the release date before a release is automatically removed
+      required: [enabled, retentionDays]
+      
+    GlobalTrAppointmentRemoveRule:
+      type: object
+      description: |
+        Test resource appointment remove rule which deletes all test resource appointments (from all projects) with an end date that is older than the specified retention period.
+      properties:
+        enabled:
+          type: boolean
+          description: true, if the global test resource appointment remove rule is enabled; false if it is disabled
+        retentionDays:
+          type: integer
+          example: 730
+          description: defines the number of days after the appointment end before appointments are automatically removed
+      required: [enabled, retentionDays]
+
+    GlobalQGatePlanRemoveRule:
+      type: object
+      description: |
+        Q-gate plan remove rule, which deletes Q-gate plans according to the retention period from all projects.
+        The retention period is defined by the number of days since the last plan state change of a Q-gate plan.
+      properties:
+        enabled:
+          type: boolean
+          description: true, if the global Q-gate plan remove rule is enabled; false if it is disabled
+        retentionDays:
+          type: integer
+          example: 700
+          description: Number of days since the last plan state change before a Q-gate plan is automatically removed
+      required: [enabled, retentionDays]
+
+    UsageMetricDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          example: '2025-04-08'
+          description: the date for which the datapoint provides data
+        identifier:
+          type: string
+          maxLength: 64
+          example: 'report.testcaseexecution.executiontime'
+          description: unique identifier of the metric
+        value:
+          type: string
+          maxLength: 64
+          example: '1024'
+          description: value of the metric
+        description:
+          type: string
+          maxLength: 256
+          example: 'Accumulated daily execution time of uploaded test case executions'
+        unit:
+          type: string
+          maxLength: 16
+          example: 's'
+          description: unit the metric value is in
+        valueType:
+          type: string
+          enum:
+            - TOTAL
+            - DAILY_DELTA
+          example: 'DAILY_DELTA'
+          description: When the valueType is TOTAL, the metric value is an absolute value. When valueType is DAILY_DELTA, the metric value expresses the change from the previous day.
+      required: [ timestamp, identifier, value, description, unit ]
+
+  responses:
+    DefautError:
+      description: |
+        An error occurred.
+
+        For example following status codes can be sent:
+        * 401: The user is unauthorized. Please check your authentication key.
+        * 403: The user does not have the necessary rights to do this action.
+        * 500: An internal error occurred. You maybe found a bug.
+        You can report bugs to [support@tracetronic.com](mailto:support@tracetronic.com).
+        * 503: The server is starting or is down for maintenance.
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

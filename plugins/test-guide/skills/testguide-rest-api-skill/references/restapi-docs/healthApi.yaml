@@ -1,0 +1,254 @@
+openapi: 3.0.2
+info:
+  title: test.guide Health API
+  description: Allows to obtain health information about the test.guide instance. This is a subset of MicroProfile Health.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.0.0
+servers:
+  - url: /api/health
+    description: this test.guide server
+  - url: /{context-path}/api/health
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/health'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+paths:
+  /live:
+    get:
+      summary: Gets whether the test.guide instance is alive
+      operationId: get-live
+      tags:
+        - health
+      responses:
+        '200':
+          description: test.guide is alive
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "UP"
+                checks: [ ]
+        '503':
+          description: test.guide is not alive
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "DOWN"
+                checks: [ ]
+        '500':
+          description: Unable to process request
+
+  /ready:
+    get:
+      summary: Gets whether the test.guide instance is ready, i.e. fully functional and able to process requests
+      operationId: get-ready
+      tags:
+        - health
+      responses:
+        '200':
+          description: test.guide is ready
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "UP"
+                checks: [ ]
+        '503':
+          description: test.guide is not ready
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "DOWN"
+                checks: [ ]
+        '500':
+          description: Unable to process request
+
+  /databaseMigrations:
+    get:
+      summary: Gets information about test.guide database migrations
+      operationId: get-databasemigrations
+      tags:
+        - health
+      responses:
+        '200':
+          description: test.guide database migration overview
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/MigrationResponse'
+        '503':
+          description: Service unavailable, maybe test.guide is not ready
+        '500':
+          description: Unable to process request
+
+  /databases:
+    get:
+      summary: Returns information about the test.guide databases.
+      operationId: get-databases
+      tags:
+        - health
+      responses:
+        '200':
+          description: Database status overview
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/DatabaseResponse'
+        '503':
+          description: Service unavailable, maybe test.guide is not ready
+        '500':
+          description: Unable to process request
+  /version:
+    get:
+      tags:
+        - health
+      summary: Retrieve application version
+      operationId: get-application-version
+      responses:
+        '200':
+          description: Application version
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ApplicationVersion'
+              example:
+                version: 1.160.0
+  /info/description:
+    get:
+      tags:
+        - health
+      summary: Retrieve application description
+      operationId: get-application-description
+      responses:
+        '200':
+          description: Application description
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/SelfDescription'
+
+components:
+  schemas:
+    Status:
+      type: string
+      enum: [ UP, DOWN ]
+
+    HealthResponse:
+      type: object
+      required: [ status, checks ]
+      properties:
+        status:
+          $ref: '#/components/schemas/Status'
+        message:
+          type: string
+        checks:
+          description: "Always empty, provided for compatibility with MicroProfile Health"
+          type: array
+          items:
+            type: object
+            required: [ name, status ]
+            properties:
+              name:
+                type: string
+              status:
+                $ref: "#/components/schemas/Status"
+
+    MigrationResponse:
+      type: object
+      required: [ done, migrations ]
+      properties:
+        done:
+          description: "True, if all database migrations are finished otherwise false."
+          type: boolean
+        migrations:
+          description: "List of all database migrations."
+          type: array
+          items:
+            type: object
+            required: [ identifier, created, started, finished, done ]
+            properties:
+              identifier:
+                description: "Unique name of the database migration."
+                type: string
+              created:
+                type: string
+                format: date-time
+              started:
+                description: "The migration start point, can also be null if the migration is not started yet."
+                type: string
+                nullable: true
+                format: date-time
+              finished:
+                description: "The migration end point can also be null if the migration is not yet complete. "
+                type: string
+                nullable: true
+                format: date-time
+              done:
+                type: boolean
+
+    DatabaseResponse:
+      type: object
+      required: [ databases ]
+      properties:
+        databases:
+          description: Listing of the databases by type
+          type: array
+          items:
+            type: object
+            required: [ database, participants, locked, lockedSince, lockedBy ]
+            properties:
+              database:
+                type: string
+                description: Database type
+                enum:
+                  - Report
+                  - Monitoring
+                  - Artifact
+              participants:
+                type: integer
+                description: Number of connected participants to the databases. Currently only supported for the report database, otherwise value is null!
+                format: int64
+                example: 1
+                nullable: true
+              locked:
+                type: boolean
+                description: true, if the database is currently locked. Is null, if the lock status could not be retrieved from the database.
+                example: true
+                nullable: true
+              lockDate:
+                type: string
+                description: The date since when the database is locked, if it currently is locked.
+                format: date-time
+                nullable: true
+              lockedBy:
+                type: string
+                description: By whom the database is locked, if it currently is locked.
+                nullable: true
+    ApplicationVersion:
+      type: object
+      properties:
+        version:
+          type: string
+
+    SelfDescription:
+      type: object
+      properties:
+        description:
+          type: string

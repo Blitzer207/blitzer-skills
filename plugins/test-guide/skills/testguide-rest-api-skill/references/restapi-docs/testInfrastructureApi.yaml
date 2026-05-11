@@ -1,0 +1,1802 @@
+openapi: 3.0.2
+info:
+  title: test.guide Test Infrastructure API
+  description: |
+    API for accessing test infrastructure data of test.guide.
+    
+    __Caution:__ This API contains endpoints that are a development preview. The endpoints are therefore not final 
+    and there might be breaking changes in the future.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.3.0
+servers:
+  - url: /api/testinfrastructure
+    description: this test.guide server
+  - url: /{context-path}/api/testinfrastructure
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/testinfrastructure'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+tags:
+    - name: ResourceAdapter
+    - name: test resources
+    - name: custom attributes
+      description: of a project
+    - name: custom attribute entries
+      description: of a test resource
+    - name: appointments
+      description: of a test resource
+    - name: test resource machines
+      description: of a test resource
+    - name: configurations
+      description: of a test resource machine
+    - name: activity distribution
+    - name: test resource filters
+
+paths:
+  /resourceadapter/download:
+    get:
+      tags:
+        - ResourceAdapter
+      summary: Download the ResourceAdapter.
+      operationId: download-resource-adapter
+      responses:
+        '200':
+          description: The ResourceAdapter as zipped folder.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                example: '<Binary content of ResourceAdapter ZIP>'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+    post:
+      tags:
+        - ResourceAdapter
+      summary: Download a ResourceAdapter with arbitrary configuration replacements.
+      description: The target URL and the AuthKey cannot be managed by test.guide. Therefore, these elements must be replaced for a correct operation of the ResourceAdapter.
+      operationId: download-customized-resource-adapter
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: List of replacements to be made in the template configuration.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceAdapterDownloadRequest'
+      responses:
+        '200':
+          description: The ResourceAdapter as zipped folder.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                example: '<Binary content of ResourceAdapter ZIP>'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+
+  /resourceadapter/configurations:
+    get:
+      tags:
+        - ResourceAdapter
+      summary: Retrieve a list of hosts for which resource adapter configurations are available.
+      operationId: retrieve-resource-adapter-configurations
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: The list of hosts
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hostname'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /resourceadapter/configuration/{hostname}:
+    get:
+      tags:
+        - ResourceAdapter
+      summary: Retrieve the configuration for the given projectId and hostname.
+      description: For security reasons, the target URL and the AuthKey will not be retrieved.
+      operationId: retrieve-resource-adapter-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/hostname'
+        - $ref: '#/components/parameters/raSync'
+      responses:
+        '200':
+          description: The configuration of the given host.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ResourceAdapterConfig'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    post:
+      tags:
+        - ResourceAdapter
+      summary: Replace the whole configuration for the given projectId and hostname.
+      description: |
+        - Always send complete configurations, except for the target URL and the AuthKey: For security reasons, these elements cannot be managed by test.guide and therefore they can only be edited in the local configuration file. There is no merge with the existing configuration (if any).
+        - If no according configuration is present, a new one will be created.
+        - If no revNumber is specified, the revision will be set automatically by incrementing the existing one or by using a default value for newly created configs.
+        - If a revNumber is specified, the request will only be accepted if no according config with an equal or higher revision is present. This function is primarily designed for the automatic config synchronization of the ResourceAdapter.
+        - **Caution: Setting a bad or partial configuration will break the ResourceAdapter in a way that cannot be recovered via test.guide, only locally in the ResourceAdapter.**
+      operationId: replace-resource-adapter-configuration
+      parameters:
+        # All query parameters are placed in a sequence in the swagger ui.
+        # Therefore the path parameter 'hostname' will be shown at the end.
+        # -> resulting order: projectId, revNumber, hostname
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/hostname'
+        - $ref: '#/components/parameters/revNumber'
+      requestBody:
+        description: Full configuration to set.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceAdapterConfig'
+      responses:
+        '204':
+          description: The configuration of the given host has been replaced.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    delete:
+      tags:
+        - ResourceAdapter
+      summary: Delete the configuration for the given hostname.
+      operationId: delete-resource-adapter-configuration
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/hostname'
+      responses:
+        '204':
+          description: The configuration of the given host has been deleted.
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresources:
+    get:
+      tags:
+        - test resources
+      summary: Retrieve a list of IDs of all available test resources.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-test-resource-ids
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: The list of test resource IDs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestResourceId'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    post:
+      tags:
+        - test resources
+      summary: Create a new test resource.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: create-test-resource
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The test resource to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestResource'
+      responses:
+        '201':
+          description: The test resource was successfully created. Returns the ID of the newly created test resource.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResourceIdResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresources/filter:
+    post:
+      tags:
+        - test resources
+      summary: Start filter test resources.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: start-filter-test-resources
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Test resources filter.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestResourcesFilter'
+      responses:
+        '202':
+          description: A task to filter test resources has been scheduled.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresources/filter/{taskId}/status:
+    get:
+      tags:
+        - test resources
+      summary: Retrieve current state of the filtering of the test resources.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-filter-test-resources-state
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the filter task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: Filter state was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskProgress'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresources/filter/{taskId}:
+    get:
+      tags:
+        - test resources
+      summary: Retrieve a list of IDs of test resources matching the filter criteria.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-filtered-test-resources
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the filter task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: The filtered test resources.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FilterTestResourcesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresources/{testResourceId}:
+    get:
+      tags:
+        - test resources
+      summary: Retrieve the test resource for the given ID.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-test-resource
+      parameters:
+        - $ref: '#/components/parameters/testResourceId'
+      responses:
+        '200':
+          description: The test resource for the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResource'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    delete:
+      tags:
+        - test resources
+      summary: Delete the test resource for the given ID.
+      description: All associated test resource machines must be explicitly deleted first. All other data belonging to the test resource will be deleted as well.
+      operationId: delete-test-resource
+      parameters:
+        - $ref: '#/components/parameters/testResourceId'
+      responses:
+        '204':
+          description: The test resource was successfully deleted.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresourcemachines:
+    post:
+      tags:
+        - test resource machines
+      summary: Create a new test resource machine.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: create-test-resource-machine
+      parameters:
+        - $ref: '#/components/parameters/parentTestResourceId'
+      requestBody:
+        description: The test resource machine to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestResourceMachine'
+      responses:
+        '201':
+          description: The test resource machine was successfully created. Returns the ID of the newly created test resource machine.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResourceMachineIdResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresourcemachines/byresourcelocationid:
+    get:
+      tags:
+        - test resource machines
+      summary: Retrieve the test resource machine for the given ResourceLocationId.
+      description: This endpoint is just intended for the transition phase in which the ResourceLocationId still exists.
+      operationId: retrieve-test-resource-machine-by-resource-location-id
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/testResourceLocation'
+        - $ref: '#/components/parameters/testResourceName'
+        - $ref: '#/components/parameters/testResourceMachineName'
+      responses:
+        '200':
+          description: The test resource machine for the given ResourceLocationId.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResourceMachine'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /testresourcemachines/{testResourceMachineId}:
+    get:
+      tags:
+        - test resource machines
+      summary: Retrieve the test resource machine for the given ID.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-test-resource-machine
+      parameters:
+        - $ref: '#/components/parameters/testResourceMachineId'
+      responses:
+        '200':
+          description: The test resource machine for the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestResourceMachine'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    delete:
+      tags:
+        - test resource machines
+      summary: Start the deletion of the test resource machine for the given ID.
+      description: |
+        The test resource machine and all data belonging to it will be deleted. Please deactivate a connected ResourceAdapter, if available, before calling the endpoint.
+      operationId: start-delete-test-resource-machine
+      parameters:
+        - $ref: '#/components/parameters/testResourceMachineId'
+      responses:
+        '202':
+          description: A task to delete the test resource machine has been scheduled.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+      
+  /testresourcemachines/{testResourceMachineId}/data:
+    get:
+      tags:
+        - test resource machines
+      summary: Retrieve the most recent data for the given test resource machine.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-trm-recent-data
+      parameters:
+        - $ref: '#/components/parameters/testResourceMachineId'
+      responses:
+        '200':
+          description: The most recent test resource machine data.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TrmData'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /customattributes:
+    get:
+      tags:
+        - custom attributes
+      summary: Retrieve a list of all available custom attributes.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-custom-attributes
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: The list of custom attributes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomAttribute'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    post:
+      tags:
+        - custom attributes
+      summary: Create a new custom attribute.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: create-custom-attribute
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The custom attribute to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomAttribute'
+      responses:
+        '201':
+          description: The custom attribute was successfully created. Returns the ID of the newly created custom attribute.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomAttributeIdResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /customattributes/{customAttributeId}:
+    put:
+      tags:
+        - custom attributes
+      summary: Update the custom attribute for the given ID.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: update-custom-attribute
+      parameters:
+        - $ref: '#/components/parameters/customAttributeId'
+      requestBody:
+        description: The custom attribute to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomAttribute'
+      responses:
+        '204':
+          description: The custom attribute was successfully updated.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    delete:
+      tags:
+        - custom attributes
+      summary: Delete the custom attribute for the given ID. All associated custom attribute entries should be explicitly deleted.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: delete-custom-attribute
+      parameters:
+        - $ref: '#/components/parameters/customAttributeId'
+        - $ref: '#/components/parameters/deleteAllEntries'
+      responses:
+        '204':
+          description: The custom attribute was successfully deleted.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /customattributeentries:
+    get:
+      tags:
+        - custom attribute entries
+      summary: Retrieve the custom attribute entry for the given test resource and custom attribute.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-custom-attribute-entry
+      parameters:
+        - $ref: '#/components/parameters/parentTestResourceId'
+        - $ref: '#/components/parameters/parentCustomAttributeId'
+      responses:
+        '200':
+          description: The custom attribute entry for the given IDs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomAttributeEntry'
+        '204':
+          description: No value defined yet for the given test resource ID and custom attribute ID.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    post:
+      tags:
+        - custom attribute entries
+      summary: Save a new custom attribute entry for the given test resource and custom attribute.
+      description: |
+        __Development Preview:__ This endpoint is not yet intended for productive use.
+
+        The current value of a custom attribute can be removed by setting the value to _null_.
+      operationId: save-custom-attribute-entry
+      parameters:
+        - $ref: '#/components/parameters/parentTestResourceId'
+        - $ref: '#/components/parameters/parentCustomAttributeId'
+      requestBody:
+        description: The new custom attribute entry.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomAttributeEntry'
+            examples:
+              Enter value:
+                value:
+                  value: My_Entry
+              Reset value:
+                value:
+                  value: null
+      responses:
+        '201':
+          description: The custom attribute entry was successfully saved.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /appointments:
+    post:
+      tags:
+        - appointments
+      summary: Create a new appointment.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: create-appointment
+      parameters:
+        - $ref: '#/components/parameters/parentTestResourceId'
+      requestBody:
+        description: The appointment to create.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '201':
+          description: The appointment was successfully created. Returns the ID of the newly created appointment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentIdResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /appointments/filter:
+    post:
+      tags:
+        - appointments
+      summary: Retrieve the appointments that match the given filter criteria.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-appointments
+      parameters:
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/order'
+      requestBody:
+        description: The filter criteria for appointments. The list of test resource IDs must contain exactly 1 element.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentFilterRequest'
+      responses:
+        '200':
+          description: The list of appointments for the given filter criteria.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /appointments/{appointmentId}:
+    get:
+      tags:
+        - appointments
+      summary: Retrieve the appointment for the given ID.
+      description: |
+        __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: retrieve-appointment
+      parameters:
+        - $ref: '#/components/parameters/appointmentId'
+      responses:
+        '200':
+          description: The appointment for the given ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    put:
+      tags:
+        - appointments
+      summary: Update the appointment for the given ID.
+      description: |
+        __Development Preview:__ This endpoint is not yet intended for productive use.
+
+        __Warning:__ If *appointmentCategoryId* is not specified in the body, the value will be set to null.
+      operationId: update-appointment
+      parameters:
+        - $ref: '#/components/parameters/appointmentId'
+      requestBody:
+        description: The appointment to update.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '204':
+          description: The appointment was successfully updated.
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+    delete:
+      tags:
+        - appointments
+      summary: Delete the appointment for the given ID.
+      description: __Development Preview:__ This endpoint is not yet intended for productive use.
+      operationId: delete-appointment
+      parameters:
+        - $ref: '#/components/parameters/appointmentId'
+      responses:
+        '204':
+          description: The appointment was successfully deleted.
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /activitydistribution/export:
+    post:
+      tags:
+        - activity distribution
+      summary: Start the export of the activity distribution with defined export type.
+      operationId: start-activity-distribution-export
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/exportType'
+      requestBody:
+        description: Filter for the activity distribution data.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityDistributionFilter'
+      responses:
+        '202':
+          description: The activity distribution export was started.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /activitydistribution/export/{taskId}/status:
+    get:
+      tags:
+        - activity distribution
+      summary: Retrieve current state of the export of the activity distribution.
+      operationId: retrieve-activity-distribution-export-state
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the export task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: Export state was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskProgress'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /activitydistribution/export/{taskId}/download:
+    get:
+      tags:
+        - activity distribution
+      summary: Download result of the export of the activity distribution.
+      operationId: download-activity-distribution
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the export task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+        - $ref: '#/components/parameters/downloadAcceptHeader'
+      responses:
+        '200':
+          description: Download of the spreadsheet export file or retrieve exported data as JSON.
+          content:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+              schema:
+                type: string
+                format: binary
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ActivityDistributionExportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+  /configurations:
+    get:
+      tags:
+        - configurations
+      summary: Retrieve configurations for the given test resource machine.
+      operationId: retrieve-trm-configurations
+      parameters:
+        - $ref: '#/components/parameters/parentTestResourceMachineId'
+        - $ref: '#/components/parameters/configurationCategory'
+        - $ref: '#/components/parameters/configurationLabel'
+        - $ref: '#/components/parameters/origin'
+        - $ref: '#/components/parameters/timestamp'
+      responses:
+        '200':
+          description: The list of configurations.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrmConfiguration'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        default:
+          $ref: '#/components/responses/DefaultError'
+          
+  /testresourcefilters:
+    get:
+      tags:
+        - test resource filters
+      summary: Retrieve a list of saved test resource filters for the given project.
+      operationId: retrieve-test-resource-filters
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: A list of saved test resource filters.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrFilterInformation'
+        default:
+          $ref: '#/components/responses/DefaultError'
+
+components:
+  parameters:
+    projectId:
+      in: query
+      name: projectId
+      required: true
+      schema:
+        $ref: '#/components/schemas/ProjectId'
+      description: ID of the test.guide project.
+
+    testResourceLocation:
+      in: query
+      name: testResourceLocation
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceLocation'
+      description: The exact location of the test resource.
+
+    testResourceName:
+      in: query
+      name: testResourceName
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceName'
+      description: The exact name of the test resource. This is formerly known as the testbench element of the ResourceLocationId.
+
+    testResourceMachineName:
+      in: query
+      name: testResourceMachineName
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceMachineName'
+      description: The exact name of the test resource machine. This is formerly known as the machine element of the ResourceLocationId.
+
+    hostname:
+      in: path
+      name: hostname
+      required: true
+      schema:
+        $ref: '#/components/schemas/Hostname'
+      description: Name of the host.
+
+    revNumber:
+      in: query
+      name: revNumber
+      required: false
+      schema:
+        type: integer
+      description: Revision of the configuration.
+
+    raSync:
+      in: query
+      name: raSync
+      required: false
+      schema:
+        type: boolean
+        default: false
+      description: Parameter is used only by ResourceAdapter. Should not be used by other clients.
+
+    testResourceId:
+      in: path
+      name: testResourceId
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceId'
+      description: ID of the test resource.
+
+    parentTestResourceId:
+      in: query
+      name: testResourceId
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceId'
+      description: ID of the test resource.
+
+    testResourceMachineId:
+      in: path
+      name: testResourceMachineId
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceMachineId'
+      description: ID of the test resource machine.
+
+    parentTestResourceMachineId:
+      in: query
+      name: testResourceMachineId
+      required: true
+      schema:
+        $ref: '#/components/schemas/TestResourceMachineId'
+      description: ID of the test resource machine.
+
+    customAttributeId:
+      in: path
+      name: customAttributeId
+      required: true
+      schema:
+        $ref: '#/components/schemas/CustomAttributeId'
+      description: ID of the custom attribute.
+
+    parentCustomAttributeId:
+      in: query
+      name: customAttributeId
+      required: true
+      schema:
+        $ref: '#/components/schemas/CustomAttributeId'
+      description: ID of the custom attribute.
+
+    deleteAllEntries:
+      in: query
+      name: deleteAllEntries
+      required: false
+      schema:
+        type: boolean
+        default: false
+      description: If true, all associated custom attribute entries will be deleted as well.
+
+    appointmentId:
+      in: path
+      name: appointmentId
+      required: true
+      schema:
+        $ref: '#/components/schemas/AppointmentId'
+      description: ID of the appointment.
+
+    offset:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+      description: Position of the first element, numbered from 0
+
+    limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        default: 100
+        minimum: 1
+        maximum: 1000
+      description: Maximum number of elements to return (maximum is 1000)
+
+    order:
+      in: query
+      name: order
+      required: false
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+      description: Ascending or descending order of sorting by appointment start time
+
+    exportType:
+      in: query
+      name: exportType
+      required: false
+      schema:
+        $ref: '#/components/schemas/ExportType'
+      description: The type of the export.
+
+    downloadAcceptHeader:
+      in: header
+      name: Accept
+      required: false
+      schema:
+        type: string
+      description: |
+        Media type of the response that should correspond to the export type.
+        Possible values are:  
+        - `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` for SPREADSHEET export  
+        - `application/json` for retrieving exported data as JSON for JSON export
+
+    configurationCategory:
+      in: query
+      name: category
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: |
+        The category of a configuration, may contain the following wildcard characters:
+        * ? (to match any single character),
+        * \* (to match zero or more of any characters)
+      example: 'SOFTWARE/*'
+
+    configurationLabel:
+      in: query
+      name: label
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: |
+        The label of a configuration, may contain the following wildcard characters:
+        * ? (to match any single character),
+        * \* (to match zero or more of any characters)
+      example: 'ecu.test*'
+
+    origin:
+      in: query
+      name: origin
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: Reference to identify the uploading entity (e.g. a plugin instance).
+      example: 'de.tracetronic.ttstm.monitoring.plugin.configuration.ConfigurationPlugin.1'
+
+    timestamp:
+      in: query
+      name: timestamp
+      required: false
+      schema:
+        $ref: '#/components/schemas/Timestamp'
+      description: Represents the date and time with a zone offset. Used to specify a precise moment for filtering or querying data. If no timestamp is specified, the latest data is retrieved. 
+
+  schemas:
+    ResourceAdapterDownloadRequest:
+      type: object
+      properties:
+        hostname:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: Name of the host from which the ResourceAdapter configuration is used as a template. If not specified, the example configuration will be used as a template.
+          example: 'computer123'
+        replacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfigurationReplacement'
+          default: [ ]
+          example:
+            - key: 'host.target.url'
+              value: 'https://my.testguide.url:1234'
+            - key: 'client.authKey'
+              value: 'theAuthKey'
+
+    ConfigurationReplacement:
+      type: object
+      properties:
+        key:
+          type: string
+          description: the key of the configuration setting
+          example: 'resourceLocationId'
+        value:
+          type: string
+          description: the value of the configuration setting
+          example: 'TT/Level1/103/TraceTroniCar/PC1'
+      required:
+        - key
+        - value
+
+    Hostname:
+      type: string
+      example: 'computer123'
+      readOnly: true
+
+    ResourceAdapterConfig:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          description: ID of the test.guide project
+          example: 1
+          readOnly: true
+        hostname:
+          $ref: '#/components/schemas/Hostname'
+        revNumber:
+          type: integer
+          description: Revision number of the configuration
+          example: 1
+          readOnly: true
+        configItems:
+          type: object
+          additionalProperties:
+            type: string
+      required:
+        - configItems
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 1
+        type:
+          type: string
+          example: 'error'
+        message:
+          type: string
+          example: 'This did not work.'
+      required:
+        - code
+        - type
+        - message
+
+    TestResourceIdResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/TestResourceId'
+
+    FilterTestResourcesResponse:
+      type: object
+      properties:
+        testResourceIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestResourceId'
+
+    TestResourceMachineIdResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/TestResourceMachineId'
+
+    TestResource:
+      type: object
+      properties:
+        testResourceId:
+          $ref: '#/components/schemas/TestResourceId'
+        projectId:
+          $ref: '#/components/schemas/ProjectId'
+        name:
+          $ref: '#/components/schemas/TestResourceName'
+        location:
+          $ref: '#/components/schemas/TestResourceLocation'
+        testResourceMachineIds:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/TestResourceMachineId'
+      required:
+        - name
+        - location
+
+    TestResourceMachine:
+      type: object
+      properties:
+        testResourceMachineId:
+          $ref: '#/components/schemas/TestResourceMachineId'
+        testResourceId:
+          $ref: '#/components/schemas/TestResourceId'
+        name:
+          $ref: '#/components/schemas/TestResourceMachineName'
+      required:
+        - name   
+
+    TestResourceId:
+      $ref: '#/components/schemas/Uuid'
+
+    TestResourceMachineId:
+      $ref: '#/components/schemas/Uuid'
+
+    ProjectId:
+      type: integer
+      example: 1
+      readOnly: true
+
+    TestResourceName:
+      type: string
+      example: 'HiL_Multimedia'
+      minLength: 1
+      maxLength: 128
+
+    TestResourceMachineName:
+      type: string
+      example: 'PC_1'
+      minLength: 1
+      maxLength: 128
+
+    TestResourceLocation:
+      type: string
+      example: 'Headquarter/Level 1/Room 1.09'
+      minLength: 1
+      maxLength: 512
+
+    TestResourcesFilter:
+      type: object
+      description: |
+        Filter for test resources. For further details on how the filter behaves, please read the corresponding 
+        description at the help contents in test.guide (<tg-base-url>/help-docs/#using_monitoring).
+
+        Every string may contain the following wildcard characters:
+          * ? (to match any single character),
+          * \* (to match zero or more of any characters)
+      properties:
+        testResourceName:
+            $ref: '#/components/schemas/TestResourceName'
+        locations:
+          type: array
+          nullable: true
+          uniqueItems: true
+          description: Filter for locations.
+          items:
+            $ref: '#/components/schemas/TestResourceLocation'
+          example: [ 'Dresden*', 'Munich*' ]
+        customAttributes:
+          type: array
+          nullable: true
+          description: Filter for attributes.
+          items:
+            $ref: '#/components/schemas/CustomAttributeFilter'
+          example: [ { key: 'Person responsible', values: [ 'Max Pattern', 'Erika Sample' ] } ]
+        configuration:
+          type: array
+          nullable: true
+          description: Filter for configuration.
+          items:
+            $ref: '#/components/schemas/ConfigurationFilter'
+          example: [ { key: 'SOFTWARE/Gimp', values: [ '5.8.1581', '1.0' ] } ]
+
+    CustomAttributeFilter:
+      type: object
+      properties:
+        key:
+          type: string
+          description: |
+            Filter for attribute names. "\*" - any key.
+        values:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: |
+            Filter for corresponding attribute values when `key` matches. Accepts also null value - no value assigned, "\*" - any value assigned.
+      required:
+        - key
+        - values
+
+    ConfigurationFilter:
+      type: object
+      properties:
+        key:
+          type: string
+          description: |
+            Filter for configuration names. "\*" - any key.
+        values:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: |
+            Filter for corresponding configuration values when `key` matches. "\*" - any value assigned.
+      required:
+        - key
+        - values
+
+    AppointmentId:
+      $ref: '#/components/schemas/Uuid'
+      
+    AppointmentCategoryId:
+      type: string
+      nullable: true
+      example: '59fba06a-a4af-403f-81db-77bb7ed1c966'
+      format: uuid
+
+    AppointmentIdResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/AppointmentId'
+
+    Appointment:
+      type: object
+      properties:
+        appointmentId:
+          $ref: '#/components/schemas/AppointmentId'
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Subject of the appointment
+          example: 'My test'
+        body:
+          type: string
+          maxLength: 4096
+          description: Detailed description of the appointment
+          example: 'This is an appointment to execute my test.'
+        startTime:
+          type: string
+          format: date-time
+          description: Start time of the appointment
+          example: '2024-08-12T12:00:00Z'
+        endTime:
+          type: string
+          format: date-time
+          description: End time of the appointment
+          example: '2024-08-12T14:00:00Z'
+        creationInfo:
+          $ref: '#/components/schemas/ModificationInfo'
+        lastModificationInfo:
+          $ref: '#/components/schemas/ModificationInfo'
+        appointmentCategoryId:
+          $ref: '#/components/schemas/AppointmentCategoryId'
+      required:
+        - subject
+        - body
+        - startTime
+        - endTime
+        
+    ModificationInfo:
+      type: object
+      properties:
+        modificationTime:
+          type: string
+          format: date-time
+          description: Time when the modification took place
+          example: '2024-08-12T09:51:23.473516Z'
+        modificationUser:
+          type: string
+          description: User who performed the modification.
+          example: 'ServerAdmin (My Display Name, My Company)'
+      readOnly: true
+
+    AppointmentFilterRequest:
+      type: object
+      properties:
+        testResourceIds:
+          type: array
+          minItems: 1
+          maxItems: 1
+          description: ID of test resources for which the appointments are searched for
+          items:
+            $ref: '#/components/schemas/TestResourceId'
+        startTime:
+          type: string
+          format: date-time
+          description: Start time of the appointment
+          example: '2024-08-12T12:00:00Z'
+        endTime:
+          type: string
+          format: date-time
+          description: End time of the appointment
+          example: '2024-08-12T14:00:00Z'
+      required:
+        - testResourceIds
+        - startTime
+        - endTime
+      writeOnly: true
+
+    CustomAttribute:
+      type: object
+      properties:
+        customAttributeId:
+          $ref: '#/components/schemas/CustomAttributeId'
+        name:
+          $ref: '#/components/schemas/CustomAttributeName'
+      required:
+        - name
+
+    CustomAttributeEntry:
+      type: object
+      properties:
+        testResourceId:
+          $ref: '#/components/schemas/TestResourceId'
+        customAttributeId:
+          $ref: '#/components/schemas/CustomAttributeId'
+        value:
+          $ref: '#/components/schemas/CustomAttributeEntryValue'
+
+    CustomAttributeIdResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/CustomAttributeId'
+
+    CustomAttributeId:
+      $ref: '#/components/schemas/Uuid'
+
+    CustomAttributeName:
+      type: string
+      example: 'My_Attribute'
+      minLength: 1
+      maxLength: 128
+
+    CustomAttributeEntryValue:
+      type: string
+      example: 'My_Entry'
+      maxLength: 255
+      nullable: true
+
+    Uuid:
+      type: string
+      example: '59fba06a-a4af-403f-81db-77bb7ed1c966'
+      readOnly: true
+      format: uuid
+
+    ActivityDistributionFilter:
+      type: object
+      properties:
+        filterStartTime:
+          type: string
+          format: date-time
+          description: Start time of the filter range
+          example: '2024-03-15T00:00:00Z'
+        filterEndTime:
+          type: string
+          format: date-time
+          description: End time of the filter range
+          example: '2024-03-15T18:00:00Z'
+      required:
+        - filterStartTime
+        - filterEndTime
+      writeOnly: true
+
+    TaskProgress:
+      type: object
+      readOnly: true
+      properties:
+        name:
+          type: string
+        progressinfo:
+          type: string
+        done:
+          type: boolean
+
+    TaskRef:
+      type: object
+      readOnly: true
+      properties:
+        taskId:
+          $ref: '#/components/schemas/TaskId'
+
+    TaskId:
+      type: string
+      example: 38400000-8cf0-11bd-b23e-10b96e4ef00d
+
+    SortOrder:
+      type: string
+      enum:
+        - ASC
+        - DESC
+      default: ASC
+
+    ExportType:
+      type: string
+      enum:
+        - SPREADSHEET
+        - JSON
+      default: SPREADSHEET
+
+    Timestamp:
+      type: string
+      example: '2025-08-13T13:00:00+02:00'
+      format: date-time
+
+    TrmConfiguration:
+      type: object
+      properties:
+        label:
+          type: string
+          example: 'ecu.test'
+        category:
+          type: string
+          example: 'SOFTWARE/tracetronic GmbH, Dresden'
+        value:
+          type: string
+          example: '2025.2'
+        description:
+          type: string
+          example: 'ecu.test 2025.2'
+        removed:
+          type: boolean
+          description: <code>true</code> if configuration is removed, <code>false</code> otherwise
+          example: false
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrmConfigurationDetail'
+          description: contains additional information about the configuration
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of configuration creation/modification
+          example: '2025-08-13T12:30:00+01:00'
+
+    TrmConfigurationDetail:
+      type: object
+      properties:
+        label:
+          type: string
+          example: 'Install Date'
+        category:
+          type: string
+          example: ''
+        value:
+          type: string
+          example: '20250813'
+
+    TrmData:
+      type: object
+      description: | 
+        Contains all the most recent test resource machine data such as heartbeat, monitoring states, component states ... 
+        The list will be updated.
+      properties:
+        connectionState:
+          nullable: true
+          $ref: '#/components/schemas/ConnectionState'
+        monitoringStates:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonitoringState'
+        componentStates:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentState'
+
+    ConnectionState:
+      type: object
+      properties:
+        online:
+          type: boolean
+          description: <code>true</code> when resource is online, <code>false</code> otherwise
+          example: true
+        nextExpected:
+          type: string
+          format: date-time
+          description: the next expected heartbeat based on the configured polling interval
+          example: '2025-11-17T13:01:00+02:00'
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent heartbeat received
+          example: '2025-11-17T13:00:00+02:00'
+      
+    MonitoringState:
+      type: object
+      properties:
+        category:
+          type: string
+          description: Category of the monitored object
+          example: 'Devices'
+        label:
+          type: string
+          description: Label of the monitored object
+          example: 'CPU Load'
+        value:
+          type: string
+          description: Measured value
+          example: '42.5'
+        unit:
+          type: string
+          description: Unit of the measured value
+          example: '%'
+        minValue:
+          type: string
+          description: Minimum possible value
+          example: '0'
+        maxValue:
+          type: string
+          description: Maximum possible value
+          example: '100'
+        state:
+          type: string
+          description: The state of the monitored object based on defined in RA config thresholds
+          example: 'GREEN'
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the most recent monitoring state
+          example: '2025-08-13T13:00:00+02:00'
+
+    ComponentState:
+      type: object
+      properties:
+        module:
+          type: string
+          example: 'Module X'
+        component:
+          type: string
+          example: 'Component Y'
+        information:
+          type: string
+          description: text description of the state
+          example: 'WARNING: Low battery'
+        state:
+          $ref: '#/components/schemas/HealthState'
+        errorLevel:
+          type: integer
+          example: 0
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentStateAttribute'
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent component state
+          example: '2025-11-17T13:01:00+00:00'
+
+    HealthState:
+      type: string
+      enum: [ 'INSUFFICIENT_DATA','OK','INTERVENTION_SUCCESSFUL','ACTION_IN_PROGRESS',
+              'OFFLINE','DISCONNECTED','CRASHED','MANUAL_ACTION_NECESSARY' ]
+
+    ComponentStateAttribute:
+      type: object
+      properties:
+        name:
+          type: string
+          example: 'TestCase'
+        value:
+          type: string
+          example: 'ecu.test/TestSuits/testcase.pkg'
+          
+    TrFilterInformation:
+      type: object
+      properties:
+        filterId:
+          type: integer
+          format: int64
+          description: Unique ID of the filter.
+          example: 1
+        name:
+          type: string
+          description: Filter name.
+          example: 'MyTrFilter'
+        category:
+          type: string
+          description: Multi-level category, with each level separated by a '/'. Empty string corresponds to a top level filter.
+          example: 'my/category'
+        description:
+          type: string
+          description: Optional description.
+          example: 'My description'
+          nullable: true
+
+    DistributedActivity:
+      type: object
+      properties:
+        typeName:
+          type: string
+          example: 'offline'
+          description: name of the activity type
+        percentage:
+          type: number
+          format: float
+          description: percentage share of time for this activity type (between 0 and 1)
+        period:
+          type: integer
+          format: int64
+          description: run time in milliseconds
+
+    TrmActivity:
+      type: object
+      properties:
+        testResourceMachineName:
+          $ref: '#/components/schemas/TestResourceMachineName'
+        distributedActivities:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributedActivity'
+
+    TrActivity:
+      type: object
+      properties:
+        testResourceName:
+          $ref: '#/components/schemas/TestResourceName'
+        trmActivities:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrmActivity'
+        distributedActivities:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistributedActivity'
+
+    ActivityDistributionExportResponse:
+      type: object
+      properties:
+        trActivities:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrActivity'
+
+  responses:
+    DefaultError:
+      description: |
+        An error occurred.
+
+        For example following status codes can be sent:
+        * 401: The user is unauthorized. Please check your authentication key.
+        * 403: The user does not have the necessary rights to do this action.
+        * 409: There is no monitoring database configured.
+        * 500: An internal error occurred. You maybe found a bug.
+        You can report bugs to [support@tracetronic.com](mailto:support@tracetronic.com).
+        * 503: The server is starting or is down for maintenance.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+            
+    BadRequestError:
+      description: The request is invalid.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+            
+    NotFoundError:
+      description: The requested entity is not found.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

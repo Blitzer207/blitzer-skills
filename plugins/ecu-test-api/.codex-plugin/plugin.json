@@ -1,0 +1,36 @@
+{
+  "name": "ecu-test-api",
+  "version": "0.1.0",
+  "description": "Codex skills for ecu.test API work and ecutest_code automation with bundled references.",
+  "author": {
+    "name": "leili"
+  },
+  "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/ecu-test-api",
+  "repository": "https://github.com/Blitzer207/blitzer-skills",
+  "license": "UNLICENSED",
+  "keywords": [
+    "ecu.test",
+    "api",
+    "codex-skills",
+    "test-automation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ecu.test API",
+    "shortDescription": "Skills for ecu.test APIs and ecutest_code Python automation.",
+    "longDescription": "A repo-local plugin that packages the existing ecu.test API skills and the ecutest_code automation skill as separate, routeable Codex skills. Each skill keeps its own bundled references and task-specific guidance.",
+    "developerName": "leili",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Use ecu.test Object API to inspect a package.",
+      "Write an ecutest_code pytest automation case.",
+      "Find the correct ecu.test Report API object model."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

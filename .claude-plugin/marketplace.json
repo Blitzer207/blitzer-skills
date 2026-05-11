@@ -1,0 +1,61 @@
+{
+  "name": "blitzer-skills",
+  "owner": {
+    "name": "Blitzer207"
+  },
+  "description": "Claude Code marketplace for Blitzer agent skills and plugins.",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "ecu-test-api",
+      "source": "./plugins/ecu-test-api",
+      "description": "ecu.test API skills with bundled versioned references.",
+      "version": "0.1.0",
+      "author": {
+        "name": "leili"
+      },
+      "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/ecu-test-api",
+      "repository": "https://github.com/Blitzer207/blitzer-skills",
+      "license": "UNLICENSED",
+      "keywords": [
+        "ecu.test",
+        "api",
+        "test-automation"
+      ],
+      "category": "Developer Tools",
+      "tags": [
+        "ecu.test",
+        "api",
+        "automotive",
+        "test-automation"
+      ],
+      "skills": "./skills/"
+    },
+    {
+      "name": "test-guide",
+      "source": "./plugins/test-guide",
+      "description": "test.guide REST API and flow.kit workflow skills with bundled local references.",
+      "version": "0.1.0",
+      "author": {
+        "name": "leili"
+      },
+      "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/test-guide",
+      "repository": "https://github.com/Blitzer207/blitzer-skills",
+      "license": "UNLICENSED",
+      "keywords": [
+        "test.guide",
+        "rest-api",
+        "flow.kit",
+        "test-automation"
+      ],
+      "category": "Developer Tools",
+      "tags": [
+        "test.guide",
+        "rest-api",
+        "flow.kit",
+        "test-automation"
+      ],
+      "skills": "./skills/"
+    }
+  ]
+}

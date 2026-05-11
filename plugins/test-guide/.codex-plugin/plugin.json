@@ -1,0 +1,36 @@
+{
+  "name": "test-guide",
+  "version": "0.1.0",
+  "description": "Codex skills for test.guide REST API automation and flow.kit workflow bundle development.",
+  "author": {
+    "name": "leili"
+  },
+  "homepage": "https://github.com/Blitzer207/blitzer-skills/tree/main/plugins/test-guide",
+  "repository": "https://github.com/Blitzer207/blitzer-skills",
+  "license": "UNLICENSED",
+  "keywords": [
+    "test.guide",
+    "rest-api",
+    "flow.kit",
+    "test-automation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "test.guide",
+    "shortDescription": "Skills for test.guide REST APIs and flow.kit workflow bundles.",
+    "longDescription": "A repo-local plugin that packages test.guide REST API OpenAPI references and the flow.kit workflow authoring skill as separate, routeable Codex skills.",
+    "developerName": "leili",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Build a test.guide REST API client call.",
+      "Create a flow.kit flow_definition.py workflow.",
+      "Find the right test.guide OpenAPI schema."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

@@ -1,0 +1,473 @@
+openapi: 3.0.2
+info:
+  title: test.guide Reporting API
+  description: API for creating PDF reports.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.3.1
+servers:
+  - url: /api/reporting
+    description: local test server
+  - url: /{context-path}/api/reporting
+    description: local test server in environment with custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/reporting'
+    description: custom test server
+    variables:
+      url:
+        default: https://localhost:8443
+security: 
+  - TestGuideAuthKey: []
+  - BearerAuth: [ ]
+paths:
+  /templates:
+    get:
+      summary: Retrieves all reporting templates of a given project.
+      operationId: retrieve-all-templates
+      tags:
+        - reporting
+      parameters:
+        - name: projectId
+          in: query
+          description: Id of the test.guide project
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reporting templates were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+                example:
+                  - templateId: 1
+                    label: MyProjectDeliveryReport
+                    templateType: TEST_SUMMARY_REPORT
+                    active: true
+                    originalFilename: MyProjectDeliveryReport.rptdesign
+                    uploadedOn: '2019-05-08T11:21:37+02:00'
+                    author: TraceTronic GmbH
+                    version: 1.4.0 (2020-03-25)
+                    dataSourceType: H2
+                    dataSourceVersion: 1.0.0
+                    hash: '0:c455ea7ddf254b3d7a90c7c14dfba2bc13aef58b4ccd100460eddb2eb971c0b6'
+                  - templateId: 3
+                    label: Vehicle Variant Report
+                    active: false
+                    templateType: TEST_COVERAGE_REPORT
+                    originalFilename: VariantCoverage.rptdesign
+                    uploadedOn: '2019-05-08T07:00:00+02:00'
+                    author: TraceTronic Inc.
+                    version: 1.0.0 (2020-03-25)
+                    dataSourceType: XML
+                    dataSourceVersion: 0.0.0
+                    hash: '0:2736d6c0a2b0e84726124cb1ccb6efab158321587701b5ba584836cd17b527cd'
+        '204':
+          description: No reporting templates exist in the given project.
+  /templates/{templateId}/parameters:
+    get:
+      summary: Retrieves all template parameters of a given template.
+      operationId: retrieve-template-parameters
+      tags:
+        - reporting
+      parameters:
+        - name: templateId
+          in: path
+          description: Id of the template
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Template parameters were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateParameter'
+                example:
+                  - name: reportAuthor
+                    type: String
+                    defaultValue: Unknown Author
+                    choices: null
+                    promptText: Enter the report author.
+                    helpText: Full name of report author should be specified.
+                  - name: mode
+                    type: String
+                    defaultValue: null
+                    choices:
+                      - label: Full report, containing all data.
+                        value: FullReport 
+                      - label: Reduced report.
+                        value: BasicReport
+                    promptText: Select report mode.
+                    helpText: null
+        '204':
+          description: No template parameters exist in the given template.
+  /export:
+    post:
+      summary: Starts the generation of report.
+      operationId: start-report-generation
+      tags:
+        - reporting
+      parameters:
+        - name: projectId
+          in: query
+          description: Id of the test.guide project
+          required: true
+          schema:
+            type: integer
+        - name: templateId
+          in: query
+          description: Id of the report template
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: fileName
+          in: query
+          description: Filename of the report
+          schema:
+            type: string
+          example: MyReport_2019
+        - name: locale
+          in: query
+          description: Locale for formatting the report
+          required: false
+          schema:
+            $ref: '#/components/schemas/SupportedLocale'
+        - name: keepDataSource
+          in: query
+          description: Include report data source in the download. If set to true, the report will be offered as downloadable ZIP archive along with its data source.
+          schema:
+            type: boolean
+            default: false
+        - name: requestTicketStatus
+          in: query
+          description: If enabled, test.guide will query the status of aby JIRA tickets assigned in reviews, the template may use this status data. Please note that it is necessary that a (technical) user is stored in the test.guides Jira configuration, the feature is not supported in if 'Force users to use their own login credentials' is enabled.
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/AbstractReportData'
+            example:
+              parameters:
+                - name: includeReviews
+                  value: true
+              dType: COVERAGE_FILTER
+              taskId: 2606
+      responses:
+        '202':
+          description: The generation of the report was started.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+  /export/{taskId}/status:
+    get:
+      summary: Retrieve current state of report generation.
+      operationId: retrieve-report-state
+      tags:
+        - reporting
+      parameters:
+        - name: taskId
+          in: path
+          description: Id of the report generation task
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: Report generation state was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskProgress'
+  /export/{taskId}/download:
+    get:
+      summary: Download result of report generation.
+      operationId: download-report
+      tags:
+        - reporting
+      parameters:
+        - name: taskId
+          in: path
+          description: Id of the report generation task
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: Download of the generated report.
+          content:
+            'application/pdf':
+              schema:
+                type: string
+                format: binary
+            'application/zip':
+              schema:
+                type: string
+                format: binary
+        default:
+          description: In case of an error a JSON message may be returned.
+          content:
+            'application/json': {}
+
+components:
+  schemas:
+    Template:
+      type: object
+      properties:
+        templateId:
+          type: integer
+          format: int64
+          readOnly: true
+        label:
+          type: string
+        templateType:
+          allOf:
+            - $ref: '#/components/schemas/TemplateType'
+          readOnly: true
+        active:
+          type: boolean
+          readOnly: true
+          description: If this value is set to false, the template will not be available for use. It can be activated using the UI. 
+        originalFilename:
+          type: string
+          readOnly: true
+        uploadedOn:
+          type: string
+          format: date-time
+          readOnly: true
+        version:
+          type: string
+          readOnly: true
+        author:
+          type: string
+          readOnly: true
+        dataSourceType:
+          allOf:
+            - $ref: '#/components/schemas/DataSourceType'
+          readOnly: true
+        dataSourceVersion:
+          type: string
+          readOnly: true
+        hash:
+          type: string
+          readOnly: true
+          description: >
+            Allows to identify a report design.
+            All PDF reports which are generated with this report design include the hash value
+            in the custom PDF document properties in the field "Description".
+      required:
+        - label
+    
+    TemplateType:
+      type: string
+      description: Defines the type of a report template. Different types may need different input data for generation.
+      enum: ['TEST_SUMMARY_REPORT', 'TEST_COVERAGE_REPORT']
+    
+    DataSourceType:
+      type: string
+      description: Defines the type of the primary report data source.
+      enum: ['XML', 'H2']
+    
+    AbstractReportData:
+      type: object
+      properties:
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateParameter'
+        dType:
+          allOf:
+            - $ref: '#/components/schemas/GenerationDataType'
+      discriminator:
+        propertyName: dType
+        mapping:
+          COVERAGE_FILTER: '#/components/schemas/TestCoverageReportData'
+          REPORT_FILTER: '#/components/schemas/TestSummaryReportData'
+          RELEASE: '#/components/schemas/ReleaseReportData'
+      required:
+        - dType
+      description: |
+        This object type is abstract, it may not be used directly. Instead, one must use the actual ReportData object
+        (`TestCoverageReportData`, `TestSummaryReportData` or `ReleaseReportData`) suiting the report template type one
+        wants to create (the discriminator value `dType` must be set accordingly).
+      example:
+        parameters:
+          - name: includeReviews
+            value: true
+        dType: REPORT_FILTER
+    
+    GenerationDataType:
+      type: string
+      enum: 
+        - COVERAGE_FILTER
+        - REPORT_FILTER
+        - RELEASE
+      description: |
+        Report type (used as discriminator value):
+        * `COVERAGE_FILTER` - test coverage report based on a finished coverage task
+        * `REPORT_FILTER` - test summary report based on a report filter query
+        * `RELEASE` - test summary report based on a release
+    
+    TemplateParameter:
+      type: object
+      properties:
+        value:
+          writeOnly: true
+        name:
+          type: string
+        type:
+          type: string
+          readOnly: true
+        defaultValue:
+          readOnly: true
+        choices:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/TemplateParameterChoice'
+          readOnly: true
+        promptText:
+          type: string
+          readOnly: true
+        helpText:
+          type: string
+          readOnly: true
+      required:
+        - name
+        - value
+    
+    TemplateParameterChoice:
+      type: object
+      description: A given option for the value of a report template parameter.
+      properties:
+        label:
+          type: string
+        value: {}
+      required:
+        - value
+        
+    TestSummaryReportData:
+      allOf:
+        - $ref: '#/components/schemas/AbstractReportData'
+        - type: object
+          description: Input data for a test summary report based on a report filter query.
+          properties:
+            reportFilter:
+              type: string
+              description: Concatenated report filter string. See links created by test.guide report filter 'Share' feature for reference. 
+              example: 'testcase=ReportPkg*&dateFrom=now-1m&dateTo=now'
+          required:
+            - reportFilter
+          example:
+            parameters:
+              - name: includeReviews
+                value: true
+            dType: REPORT_FILTER
+            reportFilter: 'testcase=ReportPkg*&dateFrom=now-1m&dateTo=now'
+            
+    
+    TestCoverageReportData:
+      allOf:
+        - $ref: '#/components/schemas/AbstractReportData'
+        - type: object
+          description: Input data for a test coverage report based on a finished coverage task.
+          properties:
+            taskId:
+              type: string
+              description: ID of the coverage calculation task
+              example: 38400000-8cf0-11bd-b23e-10b96e4ef00d
+            useReviewVerdict:
+              type: boolean
+              default: false
+            useOnlyRecentRun:
+              type: boolean
+              default: true
+          required:
+            - taskId
+          example:
+            parameters:
+              - name: includeReviews
+                value: true
+            dType: COVERAGE_FILTER
+            taskId: 2606
+
+    ReleaseReportData:
+      allOf:
+        - $ref: '#/components/schemas/AbstractReportData'
+        - type: object
+          description: Input data for a test summary report based on a release.
+          properties:
+            releaseId:
+              type: integer
+              format: int64
+              description: Id of the release 
+          required:
+            - releaseId
+          example:
+            parameters:
+              - name: includeReviews
+                value: true
+            dType: RELEASE
+            releaseId: 1508
+
+    SupportedLocale:
+      type: string
+      enum: ['GERMAN', 'ENGLISH']
+      default: 'GERMAN'
+      
+    TaskProgress:
+      type: object
+      readOnly: true
+      properties:
+        name:
+          type: string
+        progressinfo:
+          type: string
+        done:
+          type: boolean
+        error:
+          type: string
+          description: Optional error message in case the task did not run successfully.
+
+
+    TaskRef:
+      type: object
+      readOnly: true
+      properties:
+        taskId:
+          $ref: '#/components/schemas/TaskId'
+    
+    TaskId:
+      type: string
+      example: 38400000-8cf0-11bd-b23e-10b96e4ef00d
+      
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

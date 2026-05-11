@@ -1,0 +1,2253 @@
+openapi: 3.0.2
+info:
+  title: test.guide Report Management API
+  description: API for handling test reports (test case executions) in test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.7.1
+servers:
+  - url: /api/report
+    description: this test.guide server
+  - url: /{context-path}/api/report
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/report'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+  /reports:
+    post:
+      tags:
+        - report
+      summary: Upload a new report
+      description: |
+        Starts an upload by sending a zip file containing a report. 
+        All report formats that can be converted by an available X2ATX converter plugin are supported.
+        Clients are encouraged to set the "Expect: 100-continue" request HTTP header to allow for reliable processing of
+        authentication and authorization error responses.
+      operationId: upload-report
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: converterId
+          in: query
+          description: ID of the X2ATX converter plugin to use on the report file; for valid IDs see help-docs > X2ATX Upload.
+          required: true
+          schema:
+            type: string
+            maxLength: 255
+          example: |
+            "DEFAULT" if the test report is an ATX xml file or "json2atx" for a json file
+      requestBody:
+        description: The report zip to upload
+        required: true
+        content:
+          application/zip:
+            schema:
+              type: string
+              format: binary
+              description: For examples see help-docs > X2ATX Upload
+      responses:
+        '202':
+          description: The ATX upload was started; returns the task ID to query progress.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+
+  /reports/history:
+    get:
+      summary: Provides metadata for uploaded reports
+      description: |
+        Provides report metadata (e.g. execution date and report file size) 
+        for all uploaded reports in the given filter date range.        
+        The reports are filtered and sorted by their upload date.
+      operationId: fetch-history
+      tags:
+        - report
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: startDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Specifies the date after which to filter report uploads
+          example: 2024-01-15T08:30:00Z
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Specifies the date before which to filter report uploads
+          example: 2024-04-15T16:30:00Z
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Paginated list of report history items, sorted from older to newer history items.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReportHistoryItem'
+
+  /reports/uploadstatus/{taskId}:
+    get:
+      summary: Retrieve current state of report upload.
+      operationId: get-report-upload-state
+      tags:
+        - report
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the upload task as provides by the upload endpoint.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: The upload status could be retrieved successfully.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/UploadStatus'
+        '404':
+          description: No upload task with this ID was found.
+
+  /reports/{reportId}:
+    get:
+      tags:
+        - report
+      summary: Retrieve all test case executions for the supplied report ID (ATX ID)
+      operationId: fetch-test-case-executions-for-report
+      parameters:
+        - name: reportId
+          in: path
+          description: The ATX ID of the report.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: A collection containing all test case executions for the given report ID (ATX ID).
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestCaseExecutionLink'
+        '204':
+          description: The report contains no test case executions.
+        '404':
+          description: No report with this ID was found.
+
+    delete:
+      tags:
+        - report
+      summary: Delete the report with the given report ID (ATX ID)
+      description: |
+        Deletes a test report with all its associated test case executions.
+        Since removing a report is a time-consuming task, the deletion happens asynchronous.  
+        This end point returns a delete task ID, which can be used to query the status of the deletion process.
+      operationId: delete-report
+      parameters:
+        - name: reportId
+          in: path
+          description: The ATX ID of the report.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '202':
+          description: Accepted
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '404':
+          description: Not found
+
+  /reports/deletestatus/{deleteId}:
+    get:
+      summary: Retrieve delete task status
+      description: |
+        The delete task status could either be in one of three states:
+        * 'running': Deletion is still in progress
+        * 'success': Deletion has finished successfully        
+        * 'error': Deletion aborted with an error
+        
+        You also get a detailed message with further informations regarding the current status.
+      operationId: delete-status
+      tags:
+        - report
+      parameters:
+        - name: deleteId
+          in: path
+          description: ID of the delete task status
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: delete task status was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/DeleteStatus'
+        '404':
+          description: Delete task status with given ID does not exist
+
+  /export/atx/{reportId}:
+    post:
+      summary: Starts the ATX export of the report.
+      description: Exports the report as an ATX file including attached files and reviews.
+      operationId: start-atx-export
+      tags:
+        - export
+      parameters:
+        - name: reportId
+          in: path
+          description: The ID of the report.
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: useExportStorage
+          in: query
+          description: For larger resulting export files, using the configured export/import storage is necessary.
+          schema: 
+            type: boolean
+            default: false
+      responses:
+        '202':
+          description: |
+            The ATX export was started. The returned task ID can be used to poll its progress and retrieve the result (see /status and /download endpoints).
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '400':
+          description: Could not export to archive, because there is no import/export storage configured.
+        '429':
+          description: The export task could not be started, because the limit for parallel exports on this instance is reached.
+
+  /export/atx/{taskId}/status:
+    get:
+      summary: Retrieve current state of atx export.
+      operationId: retrieve-atx-export-state
+      tags:
+        - export
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the ATX export task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: ATX export state was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskProgress'
+        '404':
+          description: No export task with this ID was found.
+
+  /export/atx/{taskId}/download:
+    get:
+      summary: Download result of ATX export.
+      operationId: download-atx
+      tags:
+        - export
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the ATX export task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      responses:
+        '200':
+          description: Downloads the exported ATX file.
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Unable to download result, the export task is not done yet or in case of an archive export, there is no export/import storage configured to download the file from.
+          content:
+            'application/json': { }
+        '404':
+          description: No export task with this ID was found.
+          content:
+            'application/json': { }
+        '500':
+          description: Unable to download result, the export task failed or SMB storage could not be accessed.
+          content:
+            'application/json': { }
+
+  /testCaseExecutions/filter:
+    post:
+      tags:
+        - testcase
+      summary: Get test case executions matching the filter parameters
+      description: Gets the test case executions, that match the given filter parameters.
+      operationId: filter-test-case-executions
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/fields'
+      requestBody:
+        description: The request body contains the parameter values used to filter the test case executions.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterParameters'
+
+      responses:
+        '200':
+          description: The filter result was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestCaseExecution'
+
+  /testCaseExecutions/filter/{filterId}:
+    get:
+      tags:
+        - testcase
+      summary: Get test case executions of the specified project filter
+      description: |
+        Allows you to get the test case executions of a predefined project filter.
+        The project filter must be created in test.guide and its ID can be found in the tooltip of the "Load report filter" window.
+      operationId: project-filter-test-case-executions
+      parameters:
+        - name: filterId
+          in: path
+          description: ID of the project filter
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/fields'
+      responses:
+        '200':
+          description: The filter result was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestCaseExecution'
+        '404':
+          description: A project filter with the given ID does not exist
+
+  /testCaseExecutions/export:
+    post:
+      tags:
+        - testcase
+      summary: Export test case executions matching filter as Excel
+      description: |
+        Exports the test case executions, which match the supplied report filter parameters in an Excel file.
+        After starting the export, the returned task ID can be used to poll the state of the export and retrieve the results (see /status and /download endpoints). 
+      operationId: export-filter-results
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The request body contains the parameter values used to filter the test case executions.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterParameters'
+      responses:
+        '202':
+          description: The export task was started. Use the returned ID to poll its progress.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+  /testCaseExecutions/export/{taskId}/status:
+    get:
+      tags:
+        - testcase
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the export task
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      summary: Retrieve current state of an Excel export
+      description: |
+        Retrieves the current state of the supplied export task.
+        When the export is done, use GET /testCaseExecutions/export/{taskId}/download to retrieve the resulting Excel file.
+        To start an Excel export, use POST /testCaseExecutions/export.
+      operationId: retrieve-export-state
+      responses:
+        '200':
+          description: The task state of the Excel export was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskProgress'
+        '400':
+          description: The task ID is a TMS task ID and therefore not a valid ID.
+        '404':
+          description: No export task with this ID was found.
+  /testCaseExecutions/export/{taskId}/download:
+    get:
+      tags:
+        - testcase
+      parameters:
+        - name: taskId
+          in: path
+          description: ID of the export task
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      summary: Download Excel export result
+      description: |
+        Downloads the Excel file created by the supplied export task.
+        (To start an export task, use POST /testCaseExecutions/export.)
+      operationId: download-export
+      responses:
+        '200':
+          description: The Excel file was successfully retrieved.
+          content:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Unable to download result, the export task is not done yet or the task ID is a TMS task ID.
+          content:
+            'application/json': { }
+        '404':
+          description: No export task with this ID was found.
+          content:
+            'application/json': { }
+        '500':
+          description: Unable to download result, the export task failed.
+          content:
+            'application/json': { }
+  /testCaseExecutions/exportTms:
+    post:
+      tags:
+        - testcase
+      summary: Export test case executions matching filter into a test management system
+      description: |
+        Exports the test case executions, which match the supplied report filter parameters into 
+        the supplied test management system.
+      operationId: export-tms-filter-results
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/tmsConfigName'
+      requestBody:
+        description: The request body contains the parameter values used to filter the test case executions.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FilterParameters'
+      responses:
+        '202':
+          description: The export task was started.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+  /testCaseExecutions/exportTmsEnrichTemplateInput:
+    post:
+      tags:
+        - testcase
+      summary: Export test case executions matching filter into a test management system and enrich templating with additional input
+      description: |
+        Exports the test case executions, which match the supplied report filter parameters into 
+        the supplied test management system and enrich templating with additional input.
+      operationId: export-tms-filter-results-enriched-by-template-input
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/tmsConfigName'
+      requestBody:
+        description: The request body contains a request object with parameter values used to filter the test case executions and enrich templating with additional input.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportTmsRequest'
+      responses:
+        '202':
+          description: The export task was started.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+  /testCaseExecutions/exportTms/{tmsTaskId}/status:
+    get:
+      tags:
+        - testcase
+      parameters:
+        - name: tmsTaskId
+          in: path
+          description: ID of the TMS export task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      summary: Retrieve current state of export
+      description: Retrieves the current state of the supplied test management report export task.
+      operationId: retrieve-export-tms-state
+      responses:
+        '200':
+          description: The state of test management execution export task was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TmsTaskProgress'
+        '400':
+          description: The task ID is not a TMS task ID and is therefore not a valid ID.
+        '404':
+          description: No test management execution export task with this ID was found.
+  /testCaseExecutions/exportTms/{tmsTaskId}/download:
+    get:
+      tags:
+        - testcase
+      parameters:
+        - name: tmsTaskId
+          in: path
+          description: ID of the TMS export task.
+          required: true
+          schema:
+            $ref: '#/components/schemas/TaskId'
+      summary: Download test management report export result
+      description: Downloads the result file of the supplied test management report export task.
+      operationId: download-tms-export
+      responses:
+        '200':
+          description: The result file was successfully retrieved.
+          content:
+            'text/csv':
+              schema:
+                type: string
+                format: binary
+                example: "Report ID;TestCase Name;TESTCASE-ID;TESTSUITE-ID;TESTSCRIPT_ID;Export Status;Error message;URL\n1;\"TestCaseName\";2;3;4;SUCCESS;\"\";https://test.guide-demo.tracetronic.com/detail?projectId=1&testCase=TestCaseName&filterIds=1&review=1"
+        '400':
+          description: Unable to download result, the export task is not done yet or the task ID is not a TMS task ID.
+          content:
+            'application/json': { }
+        '404':
+          description: No export task with this ID was found.
+          content:
+            'application/json': { }
+        '500':
+          description: Unable to download result, the TMS export task failed.
+          content:
+            'application/json': { }
+  /testCaseExecution/{tceId}:
+    get:
+      tags:
+        - testcase
+      summary: Retrieve details about a specific test case execution
+      operationId: retrieve-tce
+      parameters:
+        - name: tceId
+          in: path
+          description: ID of the test case execution
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Test case execution was successfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TestCaseExecution'
+        '404':
+          description: No test case execution with this ID was found.
+
+  /testCaseExecution/{tceId}/artifacts:
+    put:
+      tags:
+        - testcase
+      summary: Adds an artifact to an existing test case execution
+      description: |
+        Clients are encouraged to set the "Expect: 100-continue" request HTTP header to allow for reliable processing of
+        authentication error responses.
+      operationId: add-artifact
+      parameters:
+        - name: tceId
+          in: path
+          description: ID of the test case execution
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                comment:
+                  type: string
+                category:
+                  type: string
+              required:
+                - file
+      responses:
+        '200':
+          description: Artifact was added to test case execution
+        '400':
+          description: Add artifact to test case execution failed
+        '404':
+          description: No test case execution for given ID found
+        '413':
+          description: The file was rejected, because it is larger than the configured maximum upload size.
+
+  /testCaseExecution/{tceId}/reviews:
+    get:
+      tags:
+        - testcase
+      summary: Retrieve all reviews
+      operationId: retrieve-reviews
+      parameters:
+        - name: tceId
+          in: path
+          description: ID of the test case execution
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '404':
+          description: No test case execution with this ID was found.
+
+  /testCaseExecution/{tceId}/review:
+    post:
+      tags:
+        - testcase
+      summary: Create a new review
+      operationId: create-review
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - name: tceId
+          in: path
+          description: ID of the test case execution
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: The request body contains the values used to create the review.
+        content:
+          multipart/form-data:
+            encoding:
+              tickets:
+                explode: true
+              contacts:
+                explode: true
+              tags:
+                explode: true
+              attachmentFiles:
+                explode: true
+              attachmentReferences:
+                explode: true
+            schema:
+              $ref: '#/components/schemas/ReviewCreate'
+      responses:
+        '200':
+          description: A review was successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewCreateResponse'
+        '400':
+          description: Review parameterization was invalid.
+        '404':
+          description: Test case was not found.
+        '500':
+          description: Unable to create review.
+
+  /testCaseExecution/{tceId}/exportLogs:
+    get:
+      tags:
+        - testcase
+      summary: Retrieve latest valid export log of test case execution
+      operationId: retrieve-export-logs
+      parameters:
+        - name: tceId
+          in: path
+          description: ID of the test case execution
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/tmsConfigName'
+      responses:
+        '200':
+          description: Latest valid export log of test case execution.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ExportLog'
+        '204':
+          description: No valid export log of test case execution was found.
+        '404':
+          description: No test case execution with this ID was found.
+
+  /testCaseExecution/{tceId}/exportLogs/derive:
+    post:
+      tags:
+        - testcase
+      summary: Derive a planned exportLog
+      operationId: derive-export-log
+      parameters:
+        - name: tceId
+          in: path
+          description: ID of the test case execution
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: The request body contains the key of source export log used to derive the planned one.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportLogKey'
+      responses:
+        '201':
+          description: A planned export log was successfully created.
+        '400':
+          description: Input for planned export log derivation was invalid.
+        '404':
+          description: No valid source test case export log was found.
+        '500':
+          description: Unable to derive planned export log.
+
+  /testCaseExecution/{tceId}/exportLogs/invalidate:
+    post:
+      tags:
+        - testcase
+      summary: Invalidate an exportLog
+      operationId: invalidate-export-log
+      parameters:
+        - name: tceId
+          in: path
+          description: ID of the test case execution the log entry is invalidated for.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: The request body contains the TMS configuration name the export log is invalidated for.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvalidateExportLogRequest'
+      responses:
+        '200':
+          description: An export log was successfully invalidated.
+        '400':
+          description: Input for the export log invalidation was invalid.
+        '404':
+          description: No valid export log was found.
+        '500':
+          description: Unable to invalidate export log.
+
+  /review/{reviewId}:
+    get:
+      tags:
+        - testcase
+      summary: Retrieve a specific review
+      operationId: fetch-review-by-id
+      parameters:
+        - name: reviewId
+          in: path
+          description: ID of the review
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Review was successfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: "#/components/schemas/Review"
+        '404':
+          description: No review for given ID found
+
+  /testCase/{testCaseName}/lastExecution:
+    get:
+      tags:
+        - testcase
+      summary: Retrieve details about the last execution of a test case
+      operationId: retrieve-last-execution
+      parameters:
+        - name: testCaseName
+          in: path
+          description: Name of the test case
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: Last execution of the testcase
+          content:
+            'application/json':
+              schema:
+                $ref: "#/components/schemas/TestCaseExecution"
+        '404':
+          description: A test case with the given name does not exist
+
+  /filters:
+    get:
+      tags:
+        - filters
+      operationId: get-filters
+      summary: Retrieve project filters.
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Paginated list of filters. Sorted ascending by filter name.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FilterInformation'
+
+  /filters/{filterId}:
+    get:
+      tags:
+        - filters
+      operationId: get-filter
+      summary: Retrieve a specific project filter including its parameters.
+      parameters:
+        - name: filterId
+          in: path
+          description: Filter ID.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Details of a specific filter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Filter'
+
+  /statistic:
+    get:
+      tags:
+        - statistic
+      summary: Determines the report statistics for the specific project.
+      operationId: get-project-statistic
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: project statistic successfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: "#/components/schemas/ProjectStatistic"
+
+  /files/{fileId}/download:
+    get:
+      tags:
+        - files
+      summary: Download a file from a file repository
+      operationId: download-file
+      parameters:
+        - name: fileId
+          in: path
+          description: ID of the file (e.g. from FileReference)
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: File
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          headers:
+            Content-Disposition:
+              description: 'Standard Content-Disposition header with filename: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Disposition'
+              required: true
+              example: |
+                attachment; filename="report.trf"; filename*=UTF-8''report.trf"
+              schema:
+                type: string
+        '404':
+          description: A file with this hash is not available in this repository
+
+
+  /atx/settings:
+    get:
+      tags:
+        - atx
+      summary: Retrieve the projects settings for the generation of ATX reports.
+      operationId: get-atx-settings
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      responses:
+        '200':
+          description: ATX settings successfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: "#/components/schemas/AtxConfiguration"
+        '204':
+          description: The ATX settings are not enabled on the server, the client has to use its own settings
+
+  /converter:
+    get:
+      tags:
+        - converter
+      summary: Retrieve information about all available X2ATX converters
+      operationId: get-converters
+      responses:
+        '200':
+          description: All X2ATX converter information successfully retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Converter"
+
+  /converter/{id}:
+    get:
+      tags:
+        - converter
+      summary: Retrieve information about a specific X2ATX converter
+      operationId: get-converter
+      parameters:
+        - name: id
+          in: path
+          description: ID of the X2ATX converter
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: X2ATX converter information sucessfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: "#/components/schemas/Converter"
+        '404':
+          description: A converter with the provided id was not found
+
+  /converter/{id}/schema:
+    get:
+      tags:
+        - converter
+      summary: Retrieve the schema of a specific X2ATX converter
+      operationId: get-converter-schema
+      parameters:
+        - name: id
+          in: path
+          description: ID of the X2ATX converter
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: X2ATX converter schema successfully retrieved
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+        '204':
+          description: The converter has no schema
+        '404':
+          description: A converter with the provided id was not found
+
+  /settings/filerepositories:
+    post:
+      tags:
+        - settings
+      summary: Configure a new file repository for the project to store report attachments.
+      operationId: create-file-repository
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      requestBody:
+        description: |
+          The request body contains the configuration to create a new file repository.
+          Only file repositories of type 'Depository from artifact management' may be created via API.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileRepository'
+      responses:
+        '201':
+          description: File repository configured successfully, returns the ID of the file repository.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileRepositoryCreateResponse'
+
+  /settings/filerepositories/{id}/activate:
+    post:
+      tags:
+        - settings
+      operationId: activate-file-repository
+      summary: Activate the file repository.
+      description: |
+        This file repository will be set as the active file repository of the project and used to store e.g. report attachments.
+        
+        If another file reposity was active before this request, it will be deactivated.
+      parameters:
+        - name: id
+          in: path
+          description: ID of the file repository
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: File repository was activated successfully.
+
+
+components:
+
+  parameters:
+    projectId:
+      name: projectId
+      in: query
+      description: ID of the test.guide project that is to be queried
+      required: true
+      schema:
+        type: integer
+
+    offset:
+      name: offset
+      in: query
+      description: The number of items to skip before starting to collect the result set.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    limit:
+      name: limit
+      in: query
+      description: The number of items to return.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+
+    tmsConfigName:
+      name: tmsConfigName
+      in: query
+      description: Name of the test management configuration.
+      required: true
+      schema:
+        type: string
+
+    fields:
+      name: fields
+      in: query
+      required: false
+      style: form  
+      explode: false # comma separated, e.g. ?fields=id,effectiveVerdict
+      description: |
+        Fields of TestCaseExecutions that should be included in the response.
+        If this parameter is used, only the requested properties of the response object will be filled with values.<br>
+        This improves response speed, as the other values do not need to be retrieved. Instead, not requested properties will be set to null.
+        Therefore, when you use this parameter, do ignore all properties in the reponse that you have not requested.<br><br>
+        The parameter is optional, if it is left out, all properties will be returned.<br><br>
+        Multiple properties are given as comma separated values, e.g. ?fields=id,effectiveVerdict.
+      schema:
+        type: array
+        uniqueItems: true
+        minLength: 1
+        items:
+          $ref: '#/components/schemas/TestCaseExecutionField'
+
+
+  schemas:
+    FilterParameters:
+      type: object
+      properties:
+        testCaseTagSetId:
+          type: integer
+          format: int64
+          minimum: 1
+        testSuiteName:
+          type: array
+          items:
+            type: string
+        testCaseName:
+          type: array
+          items:
+            type: string
+        parameterSetName:
+          type: array
+          items:
+            type: string
+        testEnvironments:
+          type: array
+          items:
+            type: string
+        attributes:
+          $ref: '#/components/schemas/KeyValuesFilters'
+        constants:
+          $ref: '#/components/schemas/KeyValuesFilters'
+        executionTimeMin:
+          type: integer
+          minimum: 0
+          description: The minimum execution time in seconds.
+        executionTimeMax:
+          type: integer
+          minimum: 0
+          description: The maximum execution time in seconds.
+        plannedTestCaseFolder:
+          type: array
+          items:
+            type: string
+        dateFrom:
+          type: string
+          format: date-time
+        dateTo:
+          type: string
+          format: date-time
+        archiveFiles:
+          type: array
+          items:
+            type: string
+        testArgumentExpr:
+          type: string
+          example: 'engineSpeed <= 2499.9 && gearbox = "manual"'
+          description: |
+            A filter expression that can be used to check either the existence of test arguments or their value.
+            For the checking of the values the operations =, <, <=, > and >= may be used.
+            It is possible to interconnect several test argument filters by AND (&&) or OR (||) operations.
+        testArgumentDirections:
+          type: array
+          items:
+            type: string
+            enum:
+              - IN
+              - OUT
+              - INOUT
+          uniqueItems: true
+          default:
+            - IN
+            - OUT
+            - INOUT
+          description: |
+            Used in conjunction with the testArgumentExpr filter, this filter option restricts the direction of the
+            test arguments filtered.
+        atxIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        verdicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Verdict'
+          uniqueItems: true
+          default:
+            - NONE
+            - PASSED
+            - INCONCLUSIVE
+            - ERROR
+            - FAILED
+        reviewExists:
+          type: string
+          enum:
+            - 'DONT_CARE'
+            - 'YES'
+            - 'NO'
+          default: DONT_CARE
+        includeObsoleteReviews:
+          type: boolean
+          default: false
+          description: |
+            If this filter option is set to false, only the last or most recent review is considered for all other
+            filters that refer to reviews of a test case execution. If, on the other hand, the option is activated,
+            then all reviews that exist for a test case execution are examined.
+        reviewAuthor:
+          type: string
+        reviewComment:
+          type: string
+        reviewSummary:
+          type: string
+        reviewVerdicts:
+          type: array
+          items:
+            type: string
+            enum:
+              - NONE
+              - PASSED
+              - INCONCLUSIVE
+              - ERROR
+              - FAILED
+              - NO_VERDICT
+          uniqueItems: true
+          default:
+            - NONE
+            - PASSED
+            - INCONCLUSIVE
+            - ERROR
+            - FAILED
+            - NO_VERDICT
+        hideInvalidRuns:
+          type: boolean
+          default: false
+          deprecated: true
+          description: |
+            If true, only test case executions not marked as invalid are included in the result set.
+            This parameter is deprecated and shouldn't be used anymore. It is replaced by 'invalidRuns'.
+        invalidRuns:
+          type: string
+          enum:
+            - NO_CONSTRAINT
+            - ONLY_VALID
+            - ONLY_INVALID
+          default: NO_CONSTRAINT
+        reviewDefectClass:
+          type: string
+        reviewDefectPriority:
+          type: string
+        reviewTags:
+          type: array
+          items:
+            type: string
+        reviewCustomEvaluation:
+          type: string
+        reviewTicketExists:
+          type: string
+          enum:
+            - 'DONT_CARE'
+            - 'YES'
+            - 'NO'
+          default: DONT_CARE
+        reviewTickets:
+          type: array
+          items:
+            type: string
+
+
+    KeyValuesFilters:
+      type: array
+      items:
+        $ref: '#/components/schemas/KeyValuesFilter'
+      example: [ { key: OS, values: [ 'Linux 4.15.0 (64 Bit)','Windows 10 1909 (64 Bit)' ], negated: true } ]
+      description: |
+        A JSON array of objects for each filter.
+        An object consists of the filter key, an array of the filtered values and optionally whether the filter
+        is negated (default: false).
+
+    KeyValuesFilter:
+      type: object
+      required: [ 'key', 'values' ]
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        negated:
+          type: boolean
+          default: false
+
+    Verdict:
+      type: string
+      enum: [ 'NONE', 'PASSED', 'INCONCLUSIVE', 'FAILED', 'ERROR' ]
+
+    TestCaseExecution:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          nullable: true
+        projectId:
+          type: integer
+          nullable: true
+        reportId:
+          type: integer
+          format: int64
+          description: The ATX ID of the report the test case execution belongs to.
+          nullable: true
+        testSuiteName:
+          type: string
+          description: The name of the test suite / test plan in which the test was executed.
+          nullable: true
+          example: NightlyRun
+        folderPath:
+          type: string
+          description: The folder path from the test suite / test plan in which the test was executed. If no folder path exists, the path is empty.
+          example: /OpenIdConnectTests/Login
+          nullable: true
+        testCaseName:
+          type: string
+          example: LoginCheck
+          nullable: true
+        description:
+          type: string
+          description: The description of the test case.
+          example: This test checks that the OpenID Connect login works as expected.
+          nullable: true
+        executionTimestamp:
+          type: string
+          format: date-time
+          nullable: true
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+        effectiveVerdict:
+          $ref: '#/components/schemas/Verdict'
+        testEnvironments:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/TestEnvironment'
+        attributes:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Attribute'
+        constants:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Constant'
+        arguments:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Argument'
+        parameters:
+          deprecated: true
+          description: Deprecated, please use 'arguments' instead.
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Argument'
+        recordings:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Recording'
+        parameterSet:
+          type: string
+          nullable: true
+        testSteps:
+          type: object
+          nullable: true
+          properties:
+            setup:
+              $ref: '#/components/schemas/TestSteps'
+            execution:
+              $ref: '#/components/schemas/TestSteps'
+            teardown:
+              $ref: '#/components/schemas/TestSteps'
+        lastReview:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Review'
+        artifacts:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/FileReference'
+        executionTime:
+          type: integer
+          description: The duration of the test case execution (in seconds).
+          nullable: true
+        releases:
+          type: array
+          nullable: true
+          items:
+            type: integer
+            format: int64
+
+
+    TestEnvironment:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    Attribute:
+      type: object
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
+    Constant:
+      type: object
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+
+    Direction:
+      type: string
+      enum: [ 'IN', 'OUT', 'INOUT' ]
+      readOnly: true
+      description: Describes the direction of the argument or recording, whether it is an input, output, or both.
+
+
+    Argument:
+      type: object
+      properties:
+        name:
+          type: string
+          example: SoC
+          description: The name of the argument.
+        value:
+          type: string
+          example: 42%
+          description: The value of the argument.
+        description:
+          type: string
+          example: State of Charge (SoC) of the battery.
+          description: The description of the argument.
+        direction:
+            $ref: '#/components/schemas/Direction'
+
+    Recording:
+      type: object
+      properties:
+        name:
+          type: string
+          description: |
+            The name of the recording. The recording file may be downloaded by looking for the corresponding,
+            equally named Artifact object of a TestCaseExecution.
+        direction:
+          $ref: '#/components/schemas/Direction'
+        fileHash:
+          type: string
+          example: 1a4d69722247dc37d828e5ab471fb625
+          description: Hash of the recording for unique identification.
+      required: [ name, direction ]
+
+    AbstractTestStep:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+        expectedResult:
+          type: string
+          nullable: true
+        dType:
+          allOf:
+            - $ref: '#/components/schemas/TestStepDType'
+      discriminator:
+        propertyName: dType
+      required:
+        - name
+        - dType
+
+    TestStepDType:
+      type: string
+      enum: [ 'TestStep', 'TestStepFolder' ]
+
+    TestStepFolder:
+      allOf:
+        - $ref: '#/components/schemas/AbstractTestStep'
+        - type: object
+          properties:
+            teststeps:
+              $ref: '#/components/schemas/TestSteps'
+
+
+    TestSteps:
+      type: array
+      items:
+        $ref: '#/components/schemas/AbstractTestStep'
+
+    TestStep:
+      allOf:
+        - $ref: '#/components/schemas/AbstractTestStep'
+        - type: object
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        projectId:
+          type: integer
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileReference'
+          description: All attachments associated with this review
+        summary:
+          type: string
+          nullable: true
+        comment:
+          type: string
+        verdict:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Verdict'
+        customEvaluation:
+          type: string
+          nullable: true
+        reviewer:
+          type: string
+        reviewDate:
+          type: string
+          format: date-time
+        contacts:
+          type: array
+          items:
+            type: string
+        tickets:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        defectClass:
+          nullable: true
+          type: string
+        defectPriority:
+          type: string
+          nullable: true
+        invalidRun:
+          type: boolean
+
+    ReviewCreate:
+      type: object
+      properties:
+        summary:
+          type: string
+          maxLength: 512
+        comment:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+        customEvaluation:
+          type: string
+          maxLength: 64
+        contacts:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 255
+          default: [ ]
+        tickets:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 2048
+          default: [ ]
+        tags:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            maxLength: 64
+          default: [ ]
+        defectClass:
+          type: string
+          maxLength: 64
+        defectPriority:
+          type: string
+          maxLength: 64
+        invalidRun:
+          type: boolean
+          default: false
+        attachmentReferences:
+          type: array
+          description: File Reference IDs, to already uploaded attachments
+          items:
+            type: integer
+            format: int64
+        attachmentFiles:
+          type: array
+          description: File attachments
+          items:
+            type: string
+            format: binary
+      example:
+        summary: review summary
+        comment: comment with at least 1 character
+        invalidRun: true
+
+    ReviewCreateResponse:
+      type: object
+      properties:
+        reviewId:
+          type: integer
+          format: int64
+          description: unique review ID
+
+    ExportLog:
+      type: object
+      properties:
+        key:
+          $ref: '#/components/schemas/ExportLogKey'
+        status:
+          type: string
+          enum:
+            - 'EXPORTED'
+            - 'PLANNED'
+          description: export status of the test case execution
+
+    ExportLogKey:
+      type: object
+      properties:
+        tceId:
+          type: integer
+          format: int64
+        tmsConfigName:
+          type: string
+
+    InvalidateExportLogRequest:
+      type: object
+      properties:
+        tmsConfigName:
+          type: string
+
+
+    FileReference:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        filename:
+          type: string
+        relPath:
+          type: string
+          description: the relative path of a file in the report directory, only folders without the filename itself
+        uploadDate:
+          type: string
+          format: date-time
+        downloadUrl:
+          deprecated: true
+          description: |
+            Deprecated, returned URL might no longer work, depending on your system configuration.
+            Please use the endpoint /files/{fileId}/download with the returned id to download the file.
+          type: string
+        fileSize:
+          type: integer
+          format: int64
+          description: File size in bytes
+        fileHash:
+          type: string
+          example: 1a4d69722247dc37d828e5ab471fb625
+          description: Hash of the file
+        filePath:
+          type: string
+          example: C:/pathToShare/1a/4d/6972224... | ArtifactId-123
+          description: The absolute path of the file where test.guide stored the file on the specific storage. If artifact management has been configured, the artifact ID is returned.
+
+    TestCaseExecutionLink:
+      description: A link object as described by https://json-schema.org/draft/2019-09/json-schema-hypermedia.html#ldo
+      type: object
+      properties:
+        tceId:
+          type: integer
+          format: int64
+          description: Test case execution ID
+          example: 4711
+        rel:
+          type: string
+          enum: [ self ]
+          description: The Relation represented by this link
+          example: self
+        href:
+          type: string
+          description: The target URI of the link
+          example: https://test.guide-demo.tracetronic.com/api/report/testCaseExecution/4711
+      required: [ rel, href ]
+
+    TaskProgress:
+      type: object
+      readOnly: true
+      properties:
+        name:
+          type: string
+        progressinfo:
+          type: string
+        done:
+          type: boolean
+
+    TmsTaskProgress:
+      type: object
+      readOnly: true
+      properties:
+        name:
+          type: string
+        progressInfo:
+          type: string
+        status:
+          type: string
+          enum: [ running, success, error ]
+          example: 'success'
+          description: The status of the tms task.
+
+    TaskRef:
+      type: object
+      readOnly: true
+      properties:
+        taskId:
+          $ref: '#/components/schemas/TaskId'
+
+    TaskId:
+      type: string
+      example: 38400000-8cf0-11bd-b23e-10b96e4ef00d
+
+    DeleteStatus:
+      type: object
+      readOnly: true
+      properties:
+        status:
+          type: string
+          enum: [ running, success, error ]
+          example: 'success'
+        detailedMessage:
+          type: string
+          example: "Report was removed successfully: Report ID 123"
+
+    AtxConfiguration:
+      type: object
+      properties:
+        projectId:
+          type: integer
+        enabled:
+          type: boolean
+        settings:
+          type: array
+          items:
+            $ref: "#/components/schemas/AtxSetting"
+
+    AtxSetting:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+
+    ProjectStatistic:
+      type: object
+      properties:
+        earliestTestCase:
+          $ref: '#/components/schemas/StatisticTestCase'
+        latestTestCase:
+          $ref: '#/components/schemas/StatisticTestCase'
+
+    StatisticTestCase:
+      type: object
+      properties:
+        testCaseName:
+          type: string
+        executionTimestamp:
+          type: string
+          format: date-time
+
+    UploadStatus:
+      type: object
+      readOnly: true
+      properties:
+        status:
+          type: string
+          enum: [ running, finished ]
+          example: 'finished'
+        uploadResult:
+          type: object
+          properties:
+            uploadReturnCode:
+              type: integer
+              description: |
+                The return code of the upload process, to evaluate the success of the upload.
+                A return code higher then 201 indicates a problem during the upload process.
+                Some possible return codes are:
+                  * 201: Successful upload
+                  * 206: Archiving is deactivated
+                  * 400: Report upload invalid
+                  * 412: Schema validation failed
+                  * 415: Unsupported media type
+                  * 500: Unexpected exception during upload
+                  * 507: Disk space insufficient
+              example: 201
+            reportId:
+              type: integer
+              format: int64
+              description: ID of the uploaded report, if it was successfully saved to the database.
+              example: 124
+            resultMessages:
+              type: array
+              description: |
+                List of messages, in case of errors (i.e. uploadReturnCode > 201) containing detailed information
+                about the successful and failed steps within the upload process.
+              items:
+                type: string
+                example: "Report saved successfully."
+            isDoubleUpload:
+              type: boolean
+              description: |
+                Indicates that this report was already uploaded to test.guide before. In this case the returned reportId
+                is the ID of the report that already exists.
+              example: false 
+            
+
+    ReportHistoryItem:
+      type: object
+      properties:
+        reportId:
+          type: integer
+          format: int64
+          description: The report ID of the report
+          example: 7
+        testPlanName:
+          type: string
+          description: Name of the test plan
+          example: My_test_project
+        status:
+          type: string
+          enum: [PENDING, COMPLETE, COMPLETE_WITH_ERROR]
+          description: |
+            A report can be in three states:
+            PENDING: report is still being uploaded
+            COMPLETE: report was successfully uploaded
+            COMPLETE_WITH_ERROR: report was uploaded, but some parts could not be uploaded, e.g. files are missing
+          example: COMPLETE
+        uploadDate:
+          type: string
+          format: date-time
+          description: Upload date of the report
+          example: 2024-02-11T11:47:12Z
+        executionDate:
+          type: string
+          format: date-time
+          description: Execution date of the report
+          example: 2024-02-09T03:19:37Z
+        fileSize:
+          type: integer
+          format: int64
+          description: File size of the report in bytes
+          example: 94834
+
+    Converter:
+      type: object
+      properties:
+        id:
+          type: string
+        version:
+          type: string
+
+    FileRepository:
+      type: object
+      properties:
+        id:
+          readOnly: true
+          type: integer
+          format: int64
+          example: 42
+        name:
+          type: string
+          description: Name of the file repository
+        depositoryId:
+          $ref: '#/components/schemas/DepositoryId'
+      required: [ name, depositoryId ]
+
+    FileRepositoryCreateResponse:
+      type: object
+      description: Contains the ID of the newly created file repository.
+      properties:
+        repositoryId:
+          type: integer
+          format: int64
+          example: 42
+
+    DepositoryId:
+      type: string
+      minLength: 3
+      maxLength: 15
+      pattern: '^[a-zA-Z0-9]{3,15}$'
+      example: 'myDepo'
+      description: Identifier of a depository
+
+    FilterInformation:
+      type: object
+      properties:
+        filterId:
+          type: integer
+          format: int64
+          description: The unique ID of the filter.
+        name:
+          type: string
+          description: Filter name.
+        category:
+          type: string
+          description: Optional category. The category can be multi-level, with each level separated by a '/' character.
+        description:
+          type: string
+          description: Optional description.
+
+    Filter:
+      allOf:
+        - $ref: '#/components/schemas/FilterInformation'
+        - type: object
+          properties:
+            parameters:
+              type: object
+              properties:
+                testCaseTagSetId:
+                  type: integer
+                  format: int64
+                  minimum: 1
+                testSuiteName:
+                  type: array
+                  items:
+                    type: string
+                testCaseName:
+                  type: array
+                  items:
+                    type: string
+                parameterSetName:
+                  type: array
+                  items:
+                    type: string
+                testEnvironments:
+                  type: array
+                  items:
+                    type: string
+                attributes:
+                  $ref: '#/components/schemas/KeyValuesFilters'
+                constants:
+                  $ref: '#/components/schemas/KeyValuesFilters'
+                executionTimeMin:
+                  type: integer
+                  minimum: 0
+                  description: The minimum execution time in seconds.
+                executionTimeMax:
+                  type: integer
+                  minimum: 0
+                  description: The maximum execution time in seconds.
+                plannedTestCaseFolder:
+                  type: array
+                  items:
+                    type: string
+                dateFromExpression:
+                  $ref: '#/components/schemas/DateExpression'
+                dateToExpression:
+                  $ref: '#/components/schemas/DateExpression'
+                archiveFiles:
+                  type: array
+                  items:
+                    type: string
+                testArgumentExpr:
+                  type: string
+                  example: 'engineSpeed <= 2499.9 && gearbox = "manual"'
+                  description: |
+                    A filter expression that can be used to check either the existence of test arguments or their value.
+                    For the checking of the values the operations =, <, <=, > and >= may be used.
+                    It is possible to interconnect several test argument filters by AND (&&) or OR (||) operations.
+                testArgumentDirections:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - IN
+                      - OUT
+                      - INOUT
+                  uniqueItems: true
+                  default:
+                    - IN
+                    - OUT
+                    - INOUT
+                  description: |
+                    Used in conjunction with the testArgumentExpr filter, this filter option restricts the direction of the
+                    test arguments filtered.
+                atxIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                verdicts:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Verdict'
+                  uniqueItems: true
+                  default:
+                    - NONE
+                    - PASSED
+                    - INCONCLUSIVE
+                    - ERROR
+                    - FAILED
+                  description: Only test case executions that have one of the specified verdicts will pass this filter.
+                reviewExists:
+                  type: string
+                  enum:
+                    - 'DONT_CARE'
+                    - 'YES'
+                    - 'NO'
+                  default: DONT_CARE
+                includeObsoleteReviews:
+                  type: boolean
+                  default: false
+                  description: |
+                    If this filter option is set to false, only the last or most recent review is considered for all other
+                    filters that refer to reviews of a test case execution. If, on the other hand, the option is activated,
+                    then all reviews that exist for a test case execution are examined.
+                reviewAuthor:
+                  type: string
+                reviewComment:
+                  type: string
+                reviewSummary:
+                  type: string
+                reviewVerdicts:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - NONE
+                      - PASSED
+                      - INCONCLUSIVE
+                      - ERROR
+                      - FAILED
+                      - NO_VERDICT
+                  uniqueItems: true
+                  default:
+                    - NONE
+                    - PASSED
+                    - INCONCLUSIVE
+                    - ERROR
+                    - FAILED
+                    - NO_VERDICT
+                invalidRuns:
+                  type: string
+                  enum:
+                    - NO_CONSTRAINT
+                    - ONLY_VALID
+                    - ONLY_INVALID
+                  default: NO_CONSTRAINT
+                reviewDefectClass:
+                  type: string
+                reviewDefectPriority:
+                  type: string
+                reviewTags:
+                  type: array
+                  items:
+                    type: string
+                reviewCustomEvaluation:
+                  type: string
+                reviewTickets:
+                  type: array
+                  items:
+                    type: string
+                reviewTicketExists:
+                  type: string
+                  description: |
+                    'YES' only finds test cases with at least one review having at least one ticket,
+                    'NO' finds test cases with at least one review and none of the reviews having a ticket
+                  enum:
+                    - 'DONT_CARE'
+                    - 'YES'
+                    - 'NO'
+                  default: DONT_CARE
+                containsVerdicts:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Verdict'
+                  uniqueItems: true
+                  default:
+                    - NONE
+                    - PASSED
+                    - INCONCLUSIVE
+                    - ERROR
+                    - FAILED
+                  description: Groups the test case executions according to their test case name. A test case execution satisfies the filter if the specified verdicts are present within its group.
+                verdictFilter:
+                  type: string
+                  enum:
+                    - NO_CONSTRAINT
+                    - ONLY_VERDICT_CHANGES
+                    - NO_VERDICT_CHANGES
+                    - LAST_VERDICT_WINS
+                  default: NO_CONSTRAINT
+                  description: Groups the test case executions according to their test case name.
+                minExecutions:
+                  type: integer
+                  description: Groups the test case executions according to their test case name. A test case execution satisfies the filter if the total number of executions within its group is equal to or greater than the specified value.
+                maxExecutions:
+                  type: integer
+                  description: Groups the test case executions according to their test case name. A test case execution satisfies the filter if the total number of executions within its group is less than or equal to the specified value.
+
+
+    DateExpression:
+      type: object
+      properties:
+        expression:
+          type: string
+          example: 'today 09:00'
+          description: |
+            An expression which, when the filter is calculated, evaluates to a particular instant.
+            
+            The expression supports the following syntax:
+            * Keyword "now": current point in time
+            * Keyword "today": current date followed by fixed time
+            * Examples:
+              * now + 2d (current point in time +2 days)
+              * now - 7y (current point in time -7 years)
+              * today 19:00 (current day 19:00)
+              * today 19:00 - 1d (yesterday 19:00)
+              * 23.04.2012
+              * 23.04.2012 16:55
+              * 23.04.2012 04:55 PM (12-hour clock)
+              * 04/23/2012 16:12 (month-day-year order)
+              * 23.04.2012 16:55 - 7h (-7 hours)
+              * 23.04.2012 16:55 - 7min (-7 minutes)
+              * 23.04.2012 16:55 - 2d (-2 days)
+              * 23.04.2012 16:55 - 2w (-2 weeks)
+              * 23.04.2012 16:55 - 2m (-2 months)
+              * 23.04.2012 16:55 - 2y (-2 years)
+              * 23.04.2012 16:55 + 7h (+7 hours)
+              * 23.04.2012 16:55 + 2y (+2 years)
+        timezoneId:
+          type: string
+          description: A Java-compliant time zone ID that is used to interpret the expression.
+
+    ExportTmsRequest:
+      type: object
+      properties:
+        filterParameters:
+          $ref: '#/components/schemas/FilterParameters'
+        templateInput:
+          $ref: '#/components/schemas/TemplateParameters'
+
+    TemplateParameters:
+      type: object
+      properties:
+        customInputs:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example: { 'TestedComponent' : [ 'XY' ], 'TestedVersion' : [ '0.1.2' ] }
+
+    TestCaseExecutionField:
+      type: string
+      description: |
+        Fields in the response object TestCaseExecution; each value refers to the property of the same name.
+      enum:
+        - id
+        - projectId
+        - reportId
+        - testSuiteName
+        - folderPath
+        - testCaseName
+        - description
+        - executionTimestamp
+        - verdict
+        - effectiveVerdict
+        - testEnvironments
+        - attributes
+        - constants
+        - arguments
+        - recordings
+        - parameterSet
+        - testSteps
+        - lastReview
+        - artifacts
+        - executionTime
+        - releases
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

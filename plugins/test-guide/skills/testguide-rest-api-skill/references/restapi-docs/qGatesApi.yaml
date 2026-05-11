@@ -1,0 +1,1732 @@
+openapi: 3.0.2
+info:
+  title: |
+    test.guide Q-gates API
+  description: |
+    API for handling Q-gates in test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.9.0
+servers:
+  - url: /api/qgates
+    description: this test.guide server
+  - url: /{context-path}/api/qgates
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/qgates'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+  /plans:
+    get:
+      deprecated: true
+      tags:
+        - qgates
+      summary: |
+        [Deprecated] Retrieve all Q-gate plans of a project
+      description: |
+        Deprecated, please use POST /plans/filter to retrieve Q-gate plans for a project.
+      operationId: retrieve-all-q-gate-plans
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: Q-gate plans were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QGatePlan'
+        '204':
+          description: No Q-gate plans exist for this project.
+    post:
+      tags:
+        - qgates
+      summary: Create a new Q-gate plan
+      operationId: create-new-q-gate-plan
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: The data to create a Q-gate plan.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGatePlan'
+      responses:
+        '201':
+          description: Q-gate plan was created successfully.
+        '400':
+          description: The plan could not be created.
+        '500':
+          description: The plan could not be created.
+
+  /plans/filter:
+    post:
+      tags:
+        - qgates
+      summary: Filter Q-gate plans
+      description: |
+        This endpoint returns Q-gate plans matching the given filter parameters (transmitted in request body).
+        Uses pagination via the 'offset' and 'limit' query parameters.
+      operationId: filter-q-gate-plans
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/planSort'
+        - $ref: '#/components/parameters/order'
+      requestBody:
+        description: Filter parameters for Q-gate plan search.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/PlanFilterParameters'
+      responses:
+        '200':
+          description: List of found Q-gate plans.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QGatePlan'
+        '204':
+          description: No plans found for this filter.
+
+  /plans/{planKey}:
+    patch:
+      tags:
+        - qgates
+      summary: Edit metadata of a Q-gate plan
+      description: |
+        Edits the given metadata properties of a Q-gate plan. Possible no matter what state the plan is currently in.
+      operationId: edit-q-gate-plan-metadata
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      requestBody:
+        description: |
+          Changed metadata for a Q-gate plan. All fields are optional. Fields not included keep their current value.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGatePlanChange'
+      responses:
+        '200':
+          description: Q-gate plan metadata was updated successfully.
+
+    delete:
+      tags:
+        - qgates
+      summary: Delete a Q-gate plan (and all its Q-gates)
+      operationId: delete-q-gate-plan
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      responses:
+        '200':
+          description: Q-gate plan and its Q-gates were deleted successfully.
+        '404':
+          description: No plan for this key was found.
+    get:
+      tags:
+        - qgates
+      summary: Retrieve the plan from plankey
+      operationId: retrieve-plan-from-plankey
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      responses:
+        '200':
+          description: A plan from plan key was found successfully.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/QGatePlan'
+        '404':
+          description: No plan with this key was found in this project.
+  /plans/{planKey}/actions:
+    post:
+      tags:
+        - qgates
+      summary: Perform an action on a Q-gate plan
+      description: |
+        Performs an action that changes the state of the Q-gate plan.
+      operationId: perform-plan-action
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      requestBody:
+        description: |
+          Action to perform.<br>
+          For more information refer to the schema of the class 'PlanAction'.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/PlanAction'
+            example:
+              action: START_EXECUTION
+      responses:
+        '204':
+          description: Action was performed successfully.
+        '400':
+          description: This action cannot be performed on this Q-gate type.
+        '404':
+          description: No plan for this key was found.
+
+  /plans/{planKey}/duplicate:
+    post:
+      tags:
+        - qgates
+      summary: Duplicate this plan
+      description: |
+        Creates a duplicate of this plan with the given name and key, that includes all meta data, Q-gates and dependencies of this plan. 
+        States and logs are not copied. The new plan is in state 'IN_EXECUTION' and can be further modified.<br>
+        Duplicating a plan is always possible, no matter what state it is currently in.
+      operationId: duplicate-plan
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/DuplicatePlanData'
+      responses:
+        '201':
+          description: Duplicate was created successfully. It can ge retrieved by the given plan key.
+        '400':
+          description: The given data does not allow to create a valid copy, e.g. the key is incorrect or not unique.
+        '404':
+          description: No plan for this key was found.
+  
+  /plans/{planKey}/statelog:
+    get:
+      tags:
+        - qgates
+      summary: Get all state log entries for this plan
+      operationId: get-all-state-log-entries
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      responses:
+        '200':
+          description: List of state log entries in this plan.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QGatePlanLog'
+              example:
+                - timestamp: '2025-03-04T14:56:00+01:00'
+                  planState: IN_EXECUTION
+                  user: John Doe
+                - timestamp: '2025-03-05T03:56:00+01:00'
+                  planState: INVALIDATED
+                  user: John Doe
+
+  /plans/{planKey}/attributes:
+    post:
+      tags:
+        - qgates
+      summary: Add attributes to a Q-gate plan
+      description: |
+        Adds one or more attributes to the Q-gate plan. Possible no matter what state the plan is in.
+      operationId: add-q-gate-plan-attributes
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      requestBody:
+        description: Attributes to be added to the Q-gate plan, consisting of keys and values.
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/QGatePlanAttribute'
+            example:
+              - attributeKey: ecu
+                attributeValue: prototype01
+              - attributeKey: Milestone
+                attributeValue: M1
+      responses:
+        '200':
+          description: Attributes were added to the Q-gate plan successfully.
+        '400':
+          description: Some or all attribute keys already exist for this Q-gate plan.
+        '404':
+          description: No plan for this key was found.
+
+  /plans/{planKey}/attributes/{attributeKey}:
+    put:
+      tags:
+        - qgates
+      summary: Edit an attribute of a Q-gate plan
+      description: |
+        Changes the attribute value for an existing attribute key of a Q-gate plan.<br>
+        This is possible no matter what state the plan is in.
+      operationId: edit-q-gate-plan-attribute
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/attributeKey'
+      requestBody:
+        description: New value to set for the attribute key.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGatePlanAttributeValue'
+      responses:
+        '200':
+          description: Q-gate plan attribute value was changed successfully.
+        '404':
+          description: No plan for this key was found or the Q-gate plan does not contain the specified attribute key.
+    delete:
+      tags:
+        - qgates
+      summary: Deletes an attribute of a Q-gate plan
+      description: |
+        Deletes the attribute associated with the attribute key from the Q-gate plan.<br>
+        Possible no matter what state the plan is in.
+      operationId: delete-q-gate-plan-attribute
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/attributeKey'
+      responses:
+        '200':
+          description: Q-gate plan attribute was deleted successfully.
+        '404':
+          description: No plan for this key was found or the Q-gate  does not contain the specified attribute key.
+
+
+
+  /plans/{planKey}/qgates:
+    get:
+      tags:
+        - qgates
+      summary: Get all Q-gates for this plan
+      operationId: get-all-q-gates
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      responses:
+        '200':
+          description: List of Q-gates in this plan.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QGate'
+              example:
+                - name: QG-1a
+                  state: PASSED
+                  dType: MANUAL
+                - name: QG-1b
+                  state: UNDEFINED
+                  dType: RELEASE
+                  releaseId: 1262
+                  percentage: 75
+                  scopeCondition:
+                    scopeKey: Platform
+                    scopeValue: HiL
+                - name: QG-2
+                  state: UNDEFINED
+                  dType: JOIN
+        '204':
+          description: No Q-gates exist for this plan.
+        '404':
+          description: No plan for this key was found.
+    post:
+      tags:
+        - qgates
+      summary: Create a new Q-gate in this plan
+      description: Creating Q-gates is only allowed while the plan is in state 'UNDER_CONSTRUCTION'.
+      operationId: create-q-gate
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      requestBody:
+        description: |
+          The data defining the Q-gate to be created. Can be used for each type of Q-gate.<br>
+          For more information take a look at the schema for the abstract class 'QGate' 
+          and its implementations 'ManualQGate', 'JoinQGate', 'ReleaseQGate', 'ApprovalQGate', 'PullQGate' and 'WorkflowQGate'.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGate'
+            example:
+              name: Q-gate1
+              dType: RELEASE
+              attributes:
+                - attributeKey: ecu
+                  attributeValue: prototype01
+                - attributeKey: Milestone
+                  attributeValue: M1
+              releaseId: 1262
+              percentage: 75
+              scopeCondition:
+                scopeKey: Platform
+                scopeValue: HiL
+              reevaluationRequirements:
+                - 'FAILED'
+                - 'ERROR'
+              sharedProjectRoles: [ 47, 48 ]
+      responses:
+        '201':
+          description: Q-gate was created.
+        '404':
+          description: No plan for this key was found.
+
+  /plans/{planKey}/qgates/{qGateName}:
+    delete:
+      tags:
+        - qgates
+      summary: Delete a Q-gate
+      description: |
+        Deletes the Q-gate and all dependencies from and to it.<br>
+        This is only allowed while the plan is in state 'UNDER_CONSTRUCTION'.
+      operationId: delete-q-gate
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      responses:
+        '200':
+          description: Q-gate was deleted successfully.
+        '404':
+          description: Either no plan for the plan key was found or the plan did not contain a Q-gate with the given name.
+    patch:
+      tags:
+        - qgates
+      summary: Edit a Q-gate
+      description: |
+        Edits some properties of a Q-gate.
+        Depending on the type of Q-gate, different types of PatchData might be used for modifying it.<br>
+        Q-gates can only be modified while the plan is still 'UNDER_CONSTRUCTION'.
+      operationId: edit-q-gate
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      requestBody:
+        description: |
+          Change to apply to the Q-gate; some patch data types may only be used on certain Q-gate types.<br>
+          For more information refer to the schemas of the abstract class 'QGatePatchData' and its implementations.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGatePatchData'
+            example:
+              patchDataType: RELEASE_QGATE_DATA
+              releaseId: 1262
+              percentage: 75
+              scopeCondition:
+                scopeKey: Platform
+                scopeValue: HiL
+              reevaluationRequirements:
+                - 'FAILED'
+                - 'ERROR'
+              clearFields: [ ]
+      responses:
+        '204':
+          description: Q-gate was modified successfully.
+        '400':
+          description: The Q-gate cannot be modified with the given patch data, e.g. because Q-gate is not of the correct type or plan is not in an editable state.
+        '404':
+          description: Either no plan for the plan key was found or the plan did not contain a Q-gate with the given name.
+
+    get:
+      tags:
+        - qgates
+      summary: Retrieve the Q-Gate from Q-Gate plan
+      operationId: retrieve-q-gate-from-q-gate-name
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      responses:
+        '200':
+          description: A Q-Gate with this name was found in the plan.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/QGate'
+        '404':
+          description: No Q-gate with this name was found in the given plan.
+
+  /plans/{planKey}/qgates/{qGateName}/name:
+    put:
+      tags:
+        - qgates
+      summary: Rename a Q-gate
+      description: |
+        Changes the name of a Q-gate.
+      operationId: rename-q-gate
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGateRenameData'
+      responses:
+        '204':
+          description: Q-gate was renamed successfully.
+        '400':
+          description: |
+            The Q-gate cannot be renamed, e.g. because the plan is not in an editable state 
+            or there is already a Q-gate with the same name in the plan.
+        '404':
+          description: No plan for the plan key was found or the plan does not contain a Q-gate with the given name.
+
+  /plans/{planKey}/qgates/{qGateName}/actions:
+    post:
+      tags:
+        - qgates
+      summary: Perform an action for a Q-gate
+      description: |
+        Performs different actions that change the state of a Q-gate. 
+        Specific actions are only applicable on certain Q-gate types.<br>
+        Only possible while the plan is in state 'IN_EXECUTION'. 
+        To use this endpoint, at least the permission QGATE_PLAN_CREATE is needed. Some actions require additional permissions.
+      operationId: perform-q-gate-action
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      requestBody:
+        description: |
+          Action to perform; each action is only applicable on certain Q-gate types.<br>
+          For more information refer to the schemas of the abstract class 'Action' and its implementations.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/Action'
+            example:
+              actionType: STOP
+      responses:
+        '204':
+          description: Action was performed successfully.
+        '400':
+          description: This action cannot be performed on this Q-gate type.
+        '403':
+          description: User is missing permission QGATE_PLAN_CREATE or there are additional permissions needed to perform this action.
+        '404':
+          description: No plan for this key was found or no Q-gate with this name exists.
+  /plans/{planKey}/qgates/{qGateName}/sharedprojectroles:
+    post:
+      tags:
+        - qgates
+      summary: Adds the IDs of project roles for which the Q-gate is shared
+      description: |
+        Adds one or more project role IDs to the Q-gate. Users having at least one of the project roles may access the Q-gate’s state via a Pull Q-gate.
+        
+        Possible no matter what state the Q-gate or its plan is in.
+      operationId: add-q-gate-shared-project-roles
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      requestBody:
+        description: IDs of the project roles the Q-gate should be shared with.
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectRoleId'
+            example: [ 47, 48 ]
+      responses:
+        '204':
+          description: Project role IDs were added to the Q-gate successfully.
+        '404':
+          description: No plan for this key was found or no Q-gate with this name exists.
+  /plans/{planKey}/qgates/{qGateName}/sharedprojectroles/{sharedProjectRole}:
+    delete:
+      tags:
+        - qgates
+      summary: Removes the share for a specific project role from a Q-gate
+      description: |
+        The share which is done via the specified project role is removed from the Q-Gate. Possible no matter what state the Q-gate or its plan is in.
+      operationId: remove-q-gate-shared-project-role
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+        - name: sharedProjectRole
+          description: ID of a project role that is used to share the Q-gate
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/ProjectRoleId'
+      responses:
+        '204':
+          description: Q-gate share was removed successfully.
+        '404':
+          description: No plan for this key was found or no Q-gate with this name exists.
+
+
+  /plans/{planKey}/qgates/{qGateName}/attributes:
+    post:
+      tags:
+        - qgates
+      summary: Add attributes to a Q-gate
+      description: |
+        Adds one or more attributes to the Q-gate. Possible no matter what state the Q-gate or its plan is in.
+      operationId: add-q-gate-attributes
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+      requestBody:
+        description: Attributes to be added to the Q-gate consisting of keys and values.
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/QGateAttribute'
+            example:
+              - attributeKey: ecu
+                attributeValue: prototype01
+              - attributeKey: Milestone
+                attributeValue: M1
+      responses:
+        '200':
+          description: Attributes were added to the Q-gate successfully.
+        '400':
+          description: Some or all attribute keys already exist for this Q-gate.
+        '404':
+          description: No plan for this key was found or no Q-gate with this name exists.
+
+  /plans/{planKey}/qgates/{qGateName}/attributes/{attributeKey}:
+    put:
+      tags:
+        - qgates
+      summary: Edit an attribute of a Q-gate
+      description: |
+        Changes the attribute value for an existing attribute key of a Q-gate.<br>
+        Possible no matter what state the Q-gate or its plan is in.
+      operationId: edit-q-gate-attribute
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+        - $ref: '#/components/parameters/attributeKey'
+      requestBody:
+        description: New value to set for the attribute key.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGateAttributeValue'
+      responses:
+        '200':
+          description: Q-gate attribute value was changed successfully.
+        '404':
+          description: No plan for this key was found, no Q-gate with this name exists or the Q-gate does not contain the specified attribute key.
+    delete:
+      tags:
+        - qgates
+      summary: Deletes an attribute of a Q-gate
+      description: |
+        Deletes the attribute associated with the attribute key from the Q-gate.<br>
+        Possible no matter what state the Q-gate or its plan is in.
+      operationId: delete-q-gate-attribute
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - $ref: '#/components/parameters/qGateName'
+        - $ref: '#/components/parameters/attributeKey'
+      responses:
+        '200':
+          description: Q-gate attribute was deleted successfully.
+        '404':
+          description: No plan for this key was found, no Q-gate with this name exists or the Q-gate does not contain the specified attribute key.
+
+  /plans/{planKey}/dependencies:
+    get:
+      tags:
+        - qgates
+      summary: Get all dependencies for this plan
+      operationId: get-all-dependencies
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      responses:
+        '200':
+          description: List of dependencies in this plan.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QGateDependency'
+              example:
+                - sourceQGateName: QG-1a
+                  targetQGateName: QG-2
+                - sourceQGateName: QG-1b
+                  targetQGateName: QG-2
+        '204':
+          description: No Q-gate dependencies exist for this plan.
+        '404':
+          description: No plan for the plan key was found.
+    post:
+      tags:
+        - qgates
+      summary: Create a new Q-gate dependency between two Q-gates in this plan
+      description: |
+        Creating dependencies is only possible while the plan is in state 'UNDER_CONSTRUCTION'.
+      operationId: create-q-gate-dependency
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+      requestBody:
+        description: |
+          The data to create a new Q-gate dependency.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/QGateDependency'
+            example:
+              sourceQGateName: QG-Source
+              targetQGateName: QG-Target
+      responses:
+        '201':
+          description: Dependency was created.
+        '404':
+          description: No plan for the plan key was found.
+    delete:
+      tags:
+        - qgates
+      summary: Remove an existing dependency between two Q-gates in this plan
+      description: Removing dependencies is only possible while the plan is in state 'UNDER_CONSTRUCTION'.
+      operationId: delete-q-gate-dependency
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/planKey'
+        - name: sourceQGateName
+          in: query
+          description: Name of the source Q-gate of the dependency
+          required: true
+          schema:
+            $ref: '#/components/schemas/QGateName'
+        - name: targetQGateName
+          in: query
+          description: Name of the target Q-gate of the dependency
+          required: true
+          schema:
+            $ref: '#/components/schemas/QGateName'
+      responses:
+        '200':
+          description: Dependency was removed.
+        '404':
+          description: No plan for the plan key was found.
+  /filter:
+    post:
+      tags:
+        - qgates
+      summary: Filter for Q-gates.
+      operationId: filter-q-gates
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      requestBody:
+        description: |
+          Filter parameters to filter for Q-gates
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/FilterParameters'
+      responses:
+        '200':
+          description: Q-gates for the filter have been found.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QGate'
+              example:
+                - name: Q-gate name
+                  dType: MANUAL
+        '204':
+          description: No Q-gates found for this filter.
+
+
+components:
+
+  parameters:
+    projectId:
+      name: projectId
+      in: query
+      description: ID of the test.guide project
+      required: true
+      schema:
+        type: integer
+
+    planKey:
+      name: planKey
+      description: Key for a Q-gate plan
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 16
+
+    qGateName:
+      name: qGateName
+      description: Unique name of the Q-gate within the plan
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/QGateName'
+
+    attributeKey:
+      name: attributeKey
+      description: Key of an attribute that is unique for each Q-gate.
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+
+    offset:
+      name: offset
+      in: query
+      description: The number of items to skip before starting to collect the result set.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    limit:
+      name: limit
+      in: query
+      description: |
+        The number of items to return. Minimum: 1, maximum: 1000.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 100
+
+    planSort:
+      name: sort
+      in: query
+      description: The parameter to sort the Q-gate plans by.
+      required: false
+      schema:
+        $ref: '#/components/schemas/PlanSort'
+
+    order:
+      name: order
+      in: query
+      description: The sorting order.
+      required: false
+      schema:
+        $ref: '#/components/schemas/SortingDirection'
+
+  schemas:
+    QGatePlan:
+      type: object
+      properties:
+        key:
+          type: string
+          description: |
+            Has to satisfy the following regex: [a-zA-Z]+-\d+ and cannot be more than 16 characters long.
+          example: plan-42
+          minLength: 1
+          maxLength: 16
+          pattern: '^([a-zA-Z]+-\d+)$'
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          example: My Q-gate Plan
+        description:
+          type: string
+          description: An optional description. Simple HTML tags for formatting are allowed.
+          example: A very <b>important</b> Q-gate plan.
+        planState:
+          $ref: '#/components/schemas/PlanState'
+          readOnly: true
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/QGatePlanAttribute'
+          example:
+            - attributeKey: ecu
+              attributeValue: prototype01
+            - attributeKey: Milestone
+              attributeValue: M1
+      required:
+        - key
+        - name
+    
+    PlanState:
+      type: string
+      enum:
+        - 'UNDER_CONSTRUCTION'
+        - 'INITIALIZING'
+        - 'IN_EXECUTION'
+        - 'INVALIDATED'
+        - 'FINALIZED'
+      description: |
+        State of this Q-gate plan. 
+        Q-gates and dependencies within the plan may only be changed as long as the plan is 'UNDER_CONSTRUCTION'.
+        When setup is finished and the execution has started, the state will change to 'INITIALIZED' and
+        will automatically set to 'IN_EXECUTION' after the init process has finished.
+        The plan may be set to 'INVALIDATED' if execution was aborted respectively is not feasible or to
+        'FINALIZED' in case the plan execution is completed.
+
+    QGatePlanAttribute:
+      type: object
+      properties:
+        attributeKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+        attributeValue:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+        - key
+        - value
+    
+    QGatePlanAttributeValue:
+      type: object
+      properties:
+        attributeValue:
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: 'Attribute value'
+
+    QGatePlanChange:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          description: New Q-gate plan name
+          example: My new Q-gate plan
+        description:
+          type: string
+          description: New optional description. Simple HTML tags for formatting are allowed.
+          example: An even more <b>important</b> Q-gate plan.
+
+    DuplicatePlanData:
+      type: object
+      properties:
+        newKey:
+          type: string
+          description: |
+            Key for the new plan that is created.
+            Has to satisfy the following regex: [a-zA-Z]+-\d+ and cannot be more than 16 characters long.
+          example: copy-2
+          minLength: 1
+          maxLength: 16
+          pattern: '^([a-zA-Z]+-\d+)$'
+        newName:
+          type: string
+          description: |
+            Name for the new plan.
+          minLength: 1
+          maxLength: 128
+          example: My copied Q-gate plan
+      required:
+        - newKey
+        - newName
+
+    QGateName:
+      description: Name of a QGate
+      type: string
+      minLength: 1
+      maxLength: 128
+
+    QGate:
+      description: |
+        Abstract parent class representing a Q-gate, concrete types are:
+        * ManualQGate (dType: MANUAL)
+        * JoinQGate (dType: JOIN)
+        * ReleaseQGate (dType: RELEASE)
+        * ApprovalQGate (dType: APPROVAL)
+        * PullQGate (dType: PULL)
+        * WorkflowQGate (dType: WORKFLOW)
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/QGateName'
+        description:
+          type: string
+          description: Optional description. Simple HTML tags for formatting are allowed.
+        state:
+          type: string
+          enum:
+            - 'UNDEFINED'
+            - 'PASSED'
+            - 'STOPPED'
+            - 'IN_PROGRESS'
+          description: State of this Q-gate (always UNDEFINED at creation)
+          readOnly: true
+        dType:
+          allOf:
+            - $ref: '#/components/schemas/QGateDType'
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/QGateAttribute'
+        sharedProjectRoles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectRoleId'
+          description: IDs of the project roles for which the Q-gate is shared
+      discriminator:
+        propertyName: dType
+        mapping:
+          MANUAL: '#/components/schemas/ManualQGate'
+          JOIN: '#/components/schemas/JoinQGate'
+          RELEASE: '#/components/schemas/ReleaseQGate'
+          APPROVAL: '#/components/schemas/ApprovalQGate'
+          PULL: '#/components/schemas/PullQGate'
+          WORKFLOW: '#/components/schemas/WorkflowQGate'
+      required:
+        - name
+        - dType
+      example:
+        name: Q-gate1
+        description: Set to passed only after following instructions provided in <b>document A38</b>.
+        state: PASSED
+        dType: MANUAL
+        attributes:
+          - attributeKey: ecu
+            attributeValue: prototype01
+          - attributeKey: ecu
+            attributeValue: prototype02
+        sharedProjectRoles: [ 47, 48 ]
+
+    QGateDType:
+      type: string
+      enum:
+        - MANUAL
+        - JOIN
+        - RELEASE
+        - APPROVAL
+        - PULL
+        - WORKFLOW
+
+    ManualQGate:
+      description: |
+        A Q-gate that can be switched to either PASSED or STOPPED by user action.<br>
+        Corresponding dType is 'MANUAL'.
+      allOf:
+        - $ref: '#/components/schemas/QGate'
+        - $ref: '#/components/schemas/ManualData'
+
+    JoinQGate:
+      description: |
+        A Q-gate that combines the states of one or more source Q-gate.<br>
+        Corresponding dType is 'JOIN'.
+      allOf:
+        - $ref: '#/components/schemas/QGate'
+
+    ReleaseQGate:
+      description: |
+        A Q-gate state changes depending of the progress of a release coverage.<br>
+        Corresponding dType is 'RELEASE'.
+      allOf:
+        - $ref: '#/components/schemas/QGate'
+        - $ref: '#/components/schemas/ReleaseData'
+
+    ApprovalQGate:
+      description: |
+        A Q-gate that allows to explicitly set the state to either PASSED or STOPPED, ignoring the states of any incoming upstream Q-gates.
+        Corresponding dType is 'APPROVAL'.
+      allOf:
+        - $ref: '#/components/schemas/QGate'
+        - $ref: '#/components/schemas/ApprovalData'
+
+    PullQGate:
+      description: |
+        A Q-gate with a state that changes depending of the state of another, shared Q-gate.<br>
+        Corresponding dType is 'PULL'.
+      allOf:
+        - $ref: '#/components/schemas/QGate'
+        - $ref: '#/components/schemas/PullData'
+        - type: object
+          properties:
+            sharedAttributes:
+              readOnly: true
+              description: Attributes of the Shared Q-gate
+              type: array
+              items:
+                $ref: '#/components/schemas/QGateAttribute'
+              example:
+                - attributeKey: sharedAttribute1Key
+                  attributeValue: sharedAttribute1Value
+                - attributeKey: sharedAttribute2Key
+                  attributeValue: sharedAttribute2Value
+
+    WorkflowQGate:
+      description: |
+        A Q-gate that triggers a flow.<br>
+        Corresponding dType is 'WORKFLOW'.
+      allOf:
+        - $ref: '#/components/schemas/QGate'
+        - $ref: '#/components/schemas/WorkflowData'
+
+    QGateAttribute:
+      type: object
+      properties:
+        attributeKey:
+          type: string
+          minLength: 1
+          maxLength: 128
+        attributeValue:
+          type: string
+          minLength: 1
+          maxLength: 256
+      required:
+        - key
+        - value
+    
+    QGateAttributeValue:
+      type: object
+      properties:
+        attributeValue:
+          type: string
+          minLength: 1
+          maxLength: 256
+          example: 'Attribute value'
+
+    ProjectRoleId:
+      type: integer
+      format: int64
+      example: 47
+      description: IDs of a project role a user can have.
+
+    ReleaseData:
+      type: object
+      description: |
+        Contains the reference to a release and a scope condition that must be fulfilled for this Q-gate to pass.
+      properties:
+        releaseId:
+          type: integer
+          format: int64
+        percentage:
+          type: integer
+          minimum: 1
+          maximum: 100
+        scopeCondition:
+          $ref: '#/components/schemas/ScopeCondition'
+        reevaluationRequirements:
+          type: array
+          description: |
+            A set of test case execution verdicts that require a reevaluation through a review to be 
+            considered valid for a Release Q-Gate.
+          items:
+            $ref: '#/components/schemas/ReevaluationRequirement'
+          uniqueItems: true
+      required:
+        - releaseId
+        - percentage
+
+    PullData:
+      type: object
+      description: |
+        Contains the reference to another test.guide project and a filter to retrieve a (shared) Q-gate from this project.
+      properties:
+        testGuideToolConfigName:
+          type: string
+          description: |
+            Name of an existing test.guide tool configuration in this project, used to gain access to the shared Q-gate.
+        filter:
+          $ref: '#/components/schemas/PullQGateFilter'
+          description: |
+            The given filter criteria are used to find a shared Q-gate in the project configured in the tool configuration and pull its state.
+            The filter has to be unambiguous, i.e there must not be multiple shared Q-gates that match the criteria.
+      required:
+        - testGuideToolConfigName
+        - filter
+
+    PullQGateFilter:
+      description: |
+        Parameters used to search for shared Q-gates.
+      type: object
+      properties:
+        qGateAttributes:
+          type: array
+          description: |
+            Attributes, the Q-gates should possess. 
+          items:
+            $ref: '#/components/schemas/KeyValuesFilter'
+          example:
+            qGateAttributes:
+              - key: 'attribute'
+                values:
+                  - 'value1'
+                  - 'value2'
+                negated: true
+      required:
+        - qGateAttributes
+
+    WorkflowData:
+      type: object
+      description: |
+        Contains the reference to the flow trigger.
+      properties:
+        flowTriggerId:
+          type: integer
+          format: int64
+          description: ID of the flow trigger triggered by the Q-gate.
+      required:
+        - flowTriggerId
+
+    ManualData:
+      type: object
+      description: |
+        Type specific data to create a manual Q-gate.<br>
+        May define project roles required to switch the Q-gates state.
+      properties:
+        rolesRequiredForAction:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectRoleId'
+          uniqueItems: true
+          description: |
+            IDs of the project roles required to change the state of this Q-gate.<br>
+            If no roles are defined, then users with the permission 'QGATE_PLAN_CREATE' can switch the Q-gate's state to stopped or passed.
+            If required roles are defined, then users must be members of at least one of the roles and have the permission 'QGATE_PLAN_CREATE' to switch the Q-gate.
+
+    ApprovalData:
+      type: object
+      description: |
+        Type specific data to create an approval Q-gate. May contain defined project roles, that are allowed to approve/disapprove the Q-gate.
+      properties:
+        rolesRequiredForAction:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectRoleId'
+          uniqueItems: true
+          description: |
+            IDs of the project roles required to change the state of this Q-gate.<br>
+            If no roles are defined, then users with the permission 'QGATE_PLAN_CREATE' can approve/disapprove continuation.
+            If required roles are defined, then users must be members of at least one of the roles and have the permission 'QGATE_PLAN_CREATE' to approve/disapprove continuation.
+        automaticApproval:
+          type: boolean
+          description: When enabled, the Q-gate state automatically changes to "PASSED" if all source Q-gates are in the "PASSED" state, even without a user decision.
+          default: false
+          nullable: false
+
+    ScopeCondition:
+      type: object
+      description: |
+        Contains the key of a scope in the release coverage and its value 
+        as well as the percentage of successful results needed in this scope to pass the condition.
+      properties:
+        scopeKey:
+          type: string
+          minLength: 1
+          maxLength: 255
+        scopeValue:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required:
+        - scopeKey
+        - scopeValue
+
+    ReevaluationRequirement:
+      description: |
+        Defines a test case execution verdict that requires a reevaluation through a review to be 
+        considered valid for a Release Q-Gate.
+      type: string
+      enum:
+        - 'INCONCLUSIVE'
+        - 'FAILED'
+        - 'ERROR'
+        - 'NONE'
+        - 'PASSED'
+
+    QGateDependency:
+      description: |
+        A dependency in a Q-gate plan, connecting a source Q-gate and a target Q-gate.
+      type: object
+      properties:
+        sourceQGateName:
+          $ref: '#/components/schemas/QGateName'
+        targetQGateName:
+          $ref: '#/components/schemas/QGateName'
+      required:
+        - sourceQGateName
+        - targetQGateName
+
+    PlanAction:
+      description: |
+        An action, that can be applied to a Q-gate plan.<br>
+      type: object
+      properties:
+        action:
+          type: string
+          enum:
+            - 'START_EXECUTION'
+            - 'INVALIDATE'
+            - 'FINALIZE'
+          description: |
+            Changing the Q-gate plan state to 'IN_EXECUTION', modifications on Q-gates and dependencies are no longer possible.
+            The INVALIDATE action sets the plan state to 'INVALIDATED', indicating that the execution of the plan was aborted (this is a final state and can't be undone).
+            The FINALIZE action sets the plan state to 'FINALIZED', indicating that the execution of the plan was completed (this is a final state and can't be undone).
+      required:
+        - action
+
+    
+    QGatePlanLog:
+      description: Entry describing a state change of a Q-gate plan.
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: time at which the Q-gate plan state was changed
+        planState:
+          $ref: '#/components/schemas/PlanState'
+          description: the new state of the Q-gate plan
+        user:
+          type: string
+          description: user who requested the change
+      required:
+        - timestamp
+        - planState
+
+    Action:
+      description: |
+        Abstract representation of an action, that can be applied to a Q-gate to change its state.<br>
+        Concrete types are:
+        * StopAction (actionType: STOP), only for ManualQGates
+        * PassAction (actionType: PASS), only for ManualQGates
+        * DisapproveContinuationAction (actionType: DISAPPROVE_CONTINUATION), only for ApprovalQGates
+        * ApproveContinuationAction (actionType: APPROVE_CONTINUATION), only for ApprovalQGates
+      type: object
+      properties:
+        actionType:
+          allOf:
+            - $ref: '#/components/schemas/ActionType'
+      discriminator:
+        propertyName: actionType
+        mapping:
+          STOP: '#/components/schemas/StopAction'
+          PASS: '#/components/schemas/PassAction'
+          DISAPPROVE_CONTINUATION: '#/components/schemas/DisapproveContinuationAction'
+          APPROVE_CONTINUATION: '#/components/schemas/ApproveContinuationAction'
+      required:
+        - actionType
+
+    ActionType:
+      type: string
+      enum:
+        - STOP
+        - PASS
+        - DISAPPROVE_CONTINUATION
+        - APPROVE_CONTINUATION
+
+    StopAction:
+      description: |
+        Use on a ManualQGate to change its state to 'STOPPED'.<br>
+        Corresponding actionType is 'STOP'. Only compatible with QGates of dType 'MANUAL'.<br><br>
+        This action triggers the complete plan to be reevaluated and might trigger state changes in further Q-gates and
+        corresponding web hooks.
+      allOf:
+        - $ref: '#/components/schemas/Action'
+        - $ref: '#/components/schemas/ActionJustification'
+
+    PassAction:
+      description: |
+        Use on a ManualQGate to change its state to 'PASSED'.<br>
+        Corresponding actionType is 'PASS'. Only compatible with QGates of dType 'MANUAL'.<br><br>
+        This action triggers the complete plan to be reevaluated and might trigger state changes in further Q-gates and
+        corresponding web hooks.
+      allOf:
+        - $ref: '#/components/schemas/Action'
+        - $ref: '#/components/schemas/ActionJustification'
+
+    DisapproveContinuationAction:
+      description: |
+        Use on a  ApprovalQGate to force its state to 'STOPPED', ignoring the states of any incoming upstream
+        Q-gates.<br>
+        Corresponding actionType is 'DISAPPROVE_CONTINUATION'. Only compatible with QGates of dType 'APPROVAL'.<br><br>
+        This action triggers the complete plan to be reevaluated and might trigger state changes in further Q-gates and
+        corresponding web hooks.
+      allOf:
+        - $ref: '#/components/schemas/Action'
+        - $ref: '#/components/schemas/ActionJustification'
+
+    ApproveContinuationAction:
+      description: |
+        Use on a ApprovalQGate to force its state to 'PASSED', ignoring the states of any incoming upstream
+        Q-gates.<br>
+        Corresponding actionType is 'APPROVE_CONTINUATION'. Only compatible with QGates of dType 'APPROVAL'.<br><br>
+        This action triggers the complete plan to be reevaluated and might trigger state changes in further Q-gates and
+        corresponding web hooks.
+      allOf:
+        - $ref: '#/components/schemas/Action'
+        - $ref: '#/components/schemas/ActionJustification'
+
+    ActionJustification:
+      type: object
+      properties:
+        justification:
+          type: string
+          description: |
+            An optional statement explaining why the action was justified. Only available for Q-Gates with the dType 'MANUAL' and 'APPROVAL'.
+          example: |
+            After submission of the documentation, the continuation of the testing process was approved. 
+
+    FilterParameters:
+      description: |
+        Parameters used to search for specific Q-gates.
+      type: object
+      properties:
+        nameFilter:
+          type: string
+          description: |
+            Filter expression for Q-gate name (case-insensitive, may contain wild-cards * and ?)
+          minLength: 1
+          maxLength: 255
+        planKey:
+          type: string
+          description: |
+            Exact plan key searched for (no wild-card allowed)
+          example: plan-42
+          minLength: 1
+          maxLength: 16
+        qGateStates:
+          type: array
+          description: |
+            States, which the Q-gates should have 
+          items:
+            type: string
+            enum:
+              - 'UNDEFINED'
+              - 'PASSED'
+              - 'STOPPED'
+              - 'IN_PROGRESS'
+          uniqueItems: true
+        qGateType:
+          $ref: '#/components/schemas/QGateDType'
+          description: |
+            Exact plan key searched for (no wild-card allowed)
+        attributes:
+          type: array
+          description: |
+            Attributes, the Q-gates should possess 
+          items:
+            $ref: '#/components/schemas/KeyValuesFilter'
+        sharedOnly:
+          type: boolean
+          description: If set, only Q-gates shared by project roles will be found.
+          default: false
+      example:
+        nameFilter: 'n?me filter*'
+        planKey: 'plan-42'
+        qGateStates:
+          - 'PASSED'
+          - 'STOPPED'
+        qGateType: 'MANUAL'
+        attributes:
+          - key: 'attribute'
+            values:
+              - 'value1'
+              - 'value2'
+            negated: true
+        sharedOnly: true
+
+    PlanFilterParameters:
+      description: |
+        Parameters used to search for Q-gate plans.
+      type: object
+      properties:
+        nameFilterTerms:
+          type: array
+          description: |
+            Filter for plan names, may contain wildcards * and ?, case-insensitive.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 128
+          uniqueItems: true
+        planKeyFilterTerms:
+          type: array
+          description: |
+            Filter for plan keys, may contain wildcards * and ?, case-insensitive.
+          items:
+            type: string
+            minLength: 1
+            maxLength: 16
+          uniqueItems: true
+        planStates:
+          type: array
+          description: |
+            States, which the Q-gate plan should have.
+          items:
+            $ref: '#/components/schemas/PlanState'
+          uniqueItems: true
+        attributes:
+          type: array
+          description: |
+            Attributes, the Q-gate plan should possess.
+          items:
+            $ref: '#/components/schemas/KeyValuesFilter'
+      example:
+        nameFilterTerms:
+          - 'n?me filter*'
+        planKeyFilterTerms:
+          - 'pl?n-42'
+          - 'key-*'
+        planStates:
+          - 'UNDER_CONSTRUCTION'
+          - 'INITIALIZING'
+        attributes:
+          - key: 'attribute'
+            values:
+              - 'value?'
+              - '* value'
+            negated: true
+
+    KeyValuesFilter:
+      type: object
+      required: [ 'key', 'value' ]
+      properties:
+        key:
+          type: string
+        values:
+          type: array
+          description: |
+            Multiple values will be combined using OR. Each value is interpreted case-insensitive and may contain wild cards * and ?.
+          minItems: 1
+          items:
+            type: string
+        negated:
+          type: boolean
+          default: false
+      description: |
+        A filter consists of the key of the attribute, an array of the filtered values (will be combined using OR and may contain wild cards)
+         and optionally whether the filter is negated (default: false).
+
+    QGatePatchData:
+      type: object
+      required: [ 'patchDataType' ]
+      description: |
+        Abstract representation of a modification that can be applied to a Q-gate.<br>
+        Concrete types are:
+        * ReleaseQGatePatchData (patchDataType: RELEASE_QGATE_DATA), only for modifying ReleaseQGates
+        * PullQGatePatchData (patchDataType: PULL_QGATE_DATA), only for modifying PullQGates
+        * WorkflowQGatePatchData (patchDataType: WORKFLOW_QGATE_DATA), only for modifying WorkflowQGates
+      properties:
+        patchDataType:
+          allOf:
+            - $ref: '#/components/schemas/QGatePatchDataType'
+      discriminator:
+        propertyName: patchDataType
+        mapping:
+          RELEASE_QGATE_DATA: '#/components/schemas/ReleaseQGatePatchData'
+          PULL_QGATE_DATA: '#/components/schemas/PullQGatePatchData'
+          WORKFLOW_QGATE_DATA: '#/components/schemas/WorkflowQGatePatchData'
+          APPROVAL_QGATE_DATA: '#/components/schemas/ApprovalQGatePatchData'
+          MANUAL_QGATE_DATA: '#/components/schemas/ManualQGatePatchData'
+
+    QGatePatchDataType:
+      type: string
+      description: dType to identify different types of QGatePatchData. See PATCH /plans/{planKey}/qgates/{qGateName}.
+      enum:
+        - RELEASE_QGATE_DATA
+        - PULL_QGATE_DATA
+        - WORKFLOW_QGATE_DATA
+        - APPROVAL_QGATE_DATA
+        - MANUAL_QGATE_DATA
+
+    ReleaseQGatePatchData:
+      description: |
+        Data object to modify an existing ReleaseQGate.<br> 
+        Properties that are not included will stay unchanged. If you want to remove an existing value (i.e. set it to null), use 'clearFields'.
+      allOf:
+        - $ref: '#/components/schemas/QGatePatchData'
+        - type: object
+          properties:
+            releaseId:
+              type: integer
+              format: int64
+            percentage:
+              type: integer
+              minimum: 1
+              maximum: 100
+            scopeCondition:
+              $ref: '#/components/schemas/ScopeCondition'
+            reevaluationRequirements:
+              type: array
+              description: |
+                A set of test case execution verdicts that require a reevaluation through a review to be 
+                considered valid for a Release Q-Gate.
+              nullable: true
+              items:
+                $ref: '#/components/schemas/ReevaluationRequirement'
+              uniqueItems: true
+            clearFields:
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+              description: |
+                Names of properties, whose values should be removed. E.g. ['scopeCondition'] will set the scope condition of this ReleaseQGate to null.
+                Passing the names of required fields (see ReleaseData object) is not allowed.
+
+    PullQGatePatchData:
+      description: |
+        Data object to modify an existing PullQGate.<br>
+        Properties that are not included will stay unchanged.
+      allOf:
+        - $ref: '#/components/schemas/QGatePatchData'
+        - type: object
+          properties:
+            testGuideToolConfigName:
+              type: string
+              description: |
+                Name of an existing test.guide tool configuration in this project, containing auth-key, project ID and test.guide URL to access shared Q-gates.
+            filter:
+              $ref: '#/components/schemas/PullQGateFilter'
+              description: |
+                The given filter criteria are used to find a shared Q-gate in the project configured in the tool configuration and pull its state.
+                The filter has to be unambiguous, i.e there must not be multiple shared Q-gates that match the criteria.
+
+    WorkflowQGatePatchData:
+      description: |
+        Data object to modify an existing WorkflowQGate.<br>
+        Properties that are not included will stay unchanged.
+      allOf:
+        - $ref: '#/components/schemas/QGatePatchData'
+        - type: object
+          properties:
+            flowTriggerId:
+              type: integer
+              format: int64
+              description: ID of the flow trigger triggered by the Q-gate.
+
+    ApprovalQGatePatchData:
+      description: |
+        Data object to modify an existing ApprovalQGate.<br>
+        Properties that are not included will remain unchanged.
+      allOf:
+        - $ref: '#/components/schemas/QGatePatchData'
+        - type: object
+          properties:
+            rolesRequiredForAction:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectRoleId'
+              uniqueItems: true
+              nullable: true
+              description: |
+                IDs of the project roles required to change the state of this Q-gate.<br>
+                Existing roles configured for this Q-gate will be replaced by this list.<br><br>
+                If this array is empty, then users with the permission 'QGATE_PLAN_CREATE' can approve/disapprove continuation.
+                If required roles are defined, then users must be members of at least one of the roles and have the permission 'QGATE_PLAN_CREATE'.
+            automaticApproval:
+              type: boolean
+              description: When enabled, the Q-gate state automatically changes to "PASSED" if all source Q-gates are in the "PASSED" state, even without a user decision.
+              nullable: false
+
+    ManualQGatePatchData:
+      description: |
+        Data object to modify an existing ManualQGate.
+        Properties that are not included will remain unchanged. 
+      allOf:
+        - $ref: '#/components/schemas/QGatePatchData'
+        - type: object
+          properties:
+            rolesRequiredForAction:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectRoleId'
+              uniqueItems: true
+              nullable: true
+              description: |
+                IDs of the project roles required to change the state of this Q-gate.<br>
+                Existing roles configured for this Q-gate will be replaced by this list.<br><br>
+                If this array is empty, then users with the permission 'QGATE_PLAN_CREATE' can switch the Q-gate's state to stopped or passed.
+                If required roles are defined, then users must be members of at least one of the roles and have the permission 'QGATE_PLAN_CREATE' to switch the Q-gate.
+
+    QGateRenameData:
+      type: object
+      description: Information that is necessary to rename a Q-gate.
+      properties:
+        newName:
+          $ref: '#/components/schemas/QGateName'
+
+    SortingDirection:
+      type: string
+      description: The sorting order.
+      enum: [ 'ASC', 'DESC' ]
+      default: 'ASC'
+
+    PlanSort:
+      type: string
+      description: |
+        The sorting order. If the order by this sort criteria is ambiguous, the result is additionally ordered by PLAN_KEY.
+      enum: 
+        - 'PLAN_KEY'
+        - 'NAME'
+        - 'LAST_STATE_CHANGE'
+        - 'STATE'
+        - 'DESCRIPTION'
+      default: 'PLAN_KEY'
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,1139 @@
+openapi: 3.0.2
+info:
+  title: test.guide Monitoring API
+  description: API for accessing monitoring data of test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 2.6.0
+servers:
+  - url: /api/v2
+    description: this test.guide server
+  - url: /{context-path}/api/v2
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/v2'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+  /monitoring/hilactivities:
+    post:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: | 
+        Deprecated endpoint to start a filtering task for monitoring data about the HIL activity in the filter range.
+        Deletion is planned for the near future. Use the POST /activitydistribution/export from Test Infrastructure API 
+        to start the export of the test resource activity distribution.
+      operationId: filter-monitoring-activities
+      requestBody:
+        description: Whitelist for the testbenches the activity should be calculated for.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MonitoringActivitiesFilter'
+      responses:
+        '202':
+          description: The filtering of the report was started.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '400':
+          description: The testbench filters given are invalid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Filter parameters are invalid.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/hilactivities/{taskId}/status:
+    get:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: |
+        Deprecated endpoint to retrieve progress information about a given task. Deletion is planned for the near 
+        future. Use the GET /activitydistribution/export/{taskId}/status from Test Infrastructure API to retrieve 
+        progress information about the given export task.
+      operationId: retrieve-activity-filter-status
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      responses:
+        '200':
+          description: Report generation state was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskProgress'
+        '404':
+          description: No task found with the given ID.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/hilactivities/{taskId}:
+    get:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: |
+        Deprecated endpoint to retrieve monitoring data about the HIL activity in the filter range. Deletion is planned
+        for the near future. Use the GET /activitydistribution/export/{taskId}/download from Test Infrastructure API 
+        to retrieve the export result of the activity distribution.
+      operationId: retrieve-monitoring-activity
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      responses:
+        '200':
+          description: HIL activity data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/HilActivities'
+              example:
+                - location: 'Headquarter/Level 1/Room 1.09'
+                  testbench: 'HiL_Multimedia'
+                  activityDistribution:
+                    offline:
+                      percentage: 0.5
+                      period: 54000000
+                    inactive:
+                      percentage: 0.1
+                      period: 10800000
+                    userActivity:
+                      percentage: 0.2
+                      period: 21600000
+                    automatedTestExecution:
+                      percentage: 0.2
+                      period: 21600000
+                - location: 'Headquarter/Level 1/Room 1.09'
+                  testbench: 'HiL_Powertrain'
+                  activityDistribution:
+                    offline:
+                      percentage: 0
+                      period: 0
+                    inactive:
+                      percentage: 0.1
+                      period: 10800000
+                    userActivity:
+                      percentage: 0.2
+                      period: 21600000
+                    automatedTestExecution:
+                      percentage: 0.7
+                      period: 75600000
+        '400':
+          description: Task not done yet.
+        '404':
+          description: No task found with the given ID.
+        '409':
+          description: There is no monitoring database configured.
+        '500':
+          description: Unable to provide HIL activity data.
+
+  /monitoring/healthstates:
+    get:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: | 
+        Deprecetaed endpoint to retrieve chunked monitoring data about the health state of the requested test bench. 
+        Deletion is planned for the near future. To obtain the most recent component states see the the componentStates 
+        property at GET /testresourcemachines/{testResourceMachineId}/data from Test Infrastructure API.
+      operationId: retrieve-monitoring-health-state
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+        - $ref: '#/components/parameters/healthStateOrder'
+        - $ref: '#/components/parameters/offset'
+        - name: limit
+          in: query
+          description: The maximum number of items to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 25
+      responses:
+        '200':
+          description: Health state data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TestBenchHealthStates'
+              example:
+                - timestamp: '1993-01-13T16:30:00+01:00'
+                  module: 'module'
+                  component: 'component'
+                  information: 'info'
+                  state: 'OK'
+                  errorLevel: 0
+                  attributes: [ ]
+                - timestamp: '1993-01-13T17:30:00+01:00'
+                  module: 'module'
+                  component: 'component'
+                  information: 'error message'
+                  state: 'MANUAL_ACTION_NECESSARY'
+                  errorLevel: 1
+                  attributes: [ ]
+        '204':
+          description: No monitoring data exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/heartbeat:
+    get:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: Deprecated endpoint to retrieve monitoring data about the most recent heartbeat. Use GET /testresourcemachines/{testResourceMachineId}/data from Test Infrastructure API instead and check the connectionState property.
+      description: The online status might become outdated before the next expected heartbeat is received.
+      operationId: retrieve-monitoring-heartbeat
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+      responses:
+        '200':
+          description: Recent heartbeat data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/Heartbeat'
+              example:
+                online: true
+                nextExpected: '2019-07-31T00:01:00+02:00'
+                timestamp: '2019-07-31T00:00:00+02:00'
+        '204':
+          description: No recent heartbeat data exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/useractivity:
+    get:
+      tags:
+        - monitoring
+      summary: Retrieve monitoring data about the most recent user activity.
+      operationId: retrieve-monitoring-user-activity
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+      responses:
+        '200':
+          description: Recent user activity data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/UserActivity'
+              example:
+                active: true
+                lastEventDate: '2019-07-31T00:00:00+02:00'
+                expiryDate: '2019-07-31T00:01:00+02:00'
+                timestamp: '2019-07-31T00:00:00+02:00'
+        '204':
+          description: No recent user activity data exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/testexecution:
+    get:
+      tags:
+        - monitoring
+      summary: Retrieve monitoring data about the most recent automated test execution.
+      operationId: retrieve-monitoring-test-execution
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+      responses:
+        '200':
+          description: Recent test execution data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TestExecution'
+              example:
+                projectLabel: 'HIL'
+                testIdentifier: 'TestSequence001/TestCase001'
+                actual: 1
+                total: 3
+                verdict: 'PASSED'
+                status: 'RUNNING'
+                automationTool: 'ECU-TEST'
+                timestamp: '2019-07-31T00:01:00+02:00'
+        '204':
+          description: No recent test execution data exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  # Disabled due to missing generated OneOf* class
+  # See: https://github.com/OpenAPITools/openapi-generator/issues/2906
+  #      https://github.com/OpenAPITools/openapi-generator/issues/2058
+  #
+  #  /monitoring/recentactivity:
+  #    get:
+  #      tags:
+  #        - monitoring
+  #      summary: Retrieve monitoring data about the most recent HIL activity.
+  #      description: 'Returns one of the following recent activity types: Heartbeat, UserActivity, TestExecution'
+  #      operationId: retrieve-monitoring-hil-activity
+  #      parameters:
+  #        - $ref: '#/components/parameters/projectId'
+  #        - $ref: '#/components/parameters/location'
+  #        - $ref: '#/components/parameters/testbench'
+  #        - $ref: '#/components/parameters/machine'
+  #      responses:
+  #        '200':
+  #          description: Recent HIL activity data was successfully retrieved.
+  #          content:
+  #            'application/json':
+  #              schema:
+  #                oneOf:
+  #                  - $ref: '#/components/schemas/Heartbeat'
+  #                  - $ref: '#/components/schemas/UserActivity'
+  #                  - $ref: '#/components/schemas/TestExecution'
+  #                discriminator:
+  #                  propertyName: activityType
+  #        '204':
+  #          description: No recent HIL activity data exist for the parameters supplied.
+  #        '401':
+  #          description: The user is unauthorized for the project or the project doesn't exist.
+  #        '404':
+  #          description: Path identifier is unknown.
+
+  /monitoring/configurations:
+    get:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: Deprecated endpoint to retrieve monitoring data about the most recent configurations. Use GET /configurations from Test Infrastructure API instead.
+      operationId: retrieve-monitoring-configurations
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+        - $ref: '#/components/parameters/category'
+        - $ref: '#/components/parameters/label'
+        - $ref: '#/components/parameters/origin'
+      responses:
+        '200':
+          description: Recent configuration data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Configuration'
+              example:
+                - {
+                  "label": "ECU-TEST 8.0",
+                  "category": "SOFTWARE/TraceTronic GmbH, Dresden",
+                  "value": "8.0.0",
+                  "description": "ECU-TEST 8.0",
+                  "removed": false,
+                  "details": [
+                    {
+                      "label": "Install Date",
+                      "category": "",
+                      "value": "20191201"
+                    }
+                  ],
+                  "timestamp": "2019-12-01T00:00:00+01:00"
+                }
+        '204':
+          description: No recent configuration data exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/resources:
+    get:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: Deprecated endpoint to retrieve monitoring resources. Use GET /testresources in combination with GET /testresources/{testResourceId} and GET /testresourcemachines/{testResourceMachineId} from Test Infrastructure API instead.
+      operationId: retrieve-monitoring-resources
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      # add paging?
+      responses:
+        '200':
+          description: Resources were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResourceLocation'
+        '204':
+          description: No monitoring resources exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+    delete:
+      deprecated: true
+      tags:
+        - monitoring
+      summary: Deprecated endpoint to delete monitoring resource asynchronously. Use DELETE /testresourcemachines/{testResourceMachineId} from Test Infrastructure API instead.
+      operationId: delete-monitoring-resource
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+      responses:
+        '202':
+          description: A task to delete the monitoring resource has been scheduled.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/TaskRef'
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/resources/search:
+    post:
+      tags:
+        - monitoring
+      summary: Search for monitoring resources that match given criteria.
+      operationId: retrieve-monitoring-resources-for-search-criteria
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Search criteria that the testbenches must fulfill.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/TestbenchSearchCriterion'
+      responses:
+        '200':
+          description: Resources were successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResourceLocation'
+        '204':
+          description: No monitoring resources exist for the parameters supplied.
+        '400':
+          description: The input parameters are not valid.
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '404':
+          description: Path identifier is unknown.
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/testbenchactivity/types:
+    get:
+      tags:
+        - monitoring
+      summary: Retrieve all configured testbench activity types.
+      operationId: retrieve-testbench-activity-types
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      responses:
+        '200':
+          description: The list of testbench activity types
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestbenchActivityType'
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: There is no monitoring database configured.
+
+  /monitoring/testbenchactivity/events:
+    get:
+      tags:
+        - monitoring
+      summary: Retrieve chunked monitoring data about the testbench activity events of the requested test bench.
+      operationId: retrieve-testbench-activity-events
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/location'
+        - $ref: '#/components/parameters/testbench'
+        - $ref: '#/components/parameters/machine'
+        - name: filterStartTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          required: true
+          description: start of the filter range - format 'YYYY-MM-ddTHH:mm:ss+zz:zz'
+          example: '2019-07-31T00:00:00+02:00'
+        - name: filterEndTime
+          in: query
+          schema:
+            type: string
+            format: date-time
+          required: true
+          description: end of the filter range - format 'YYYY-MM-ddTHH:mm:ss+zz:zz'
+          example: '2019-07-31T18:00:00+02:00'
+        - name: activityTypeIds
+          in: query
+          description: If specified, include only events with the given type IDs in the result
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: filterByStatusPresence
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/TestbenchActivityEventStatusFilter"
+        - $ref: '#/components/parameters/offset'
+        - name: limit
+          in: query
+          description: The number of items to return.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 1000
+      responses:
+        '200':
+          description: Testbench activity event data was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestbenchActivityEvent'
+        '401':
+          description: The user is unauthorized for the project or the project doesn't exist.
+        '409':
+          description: There is no monitoring database configured.
+
+components:
+  parameters:
+    projectId:
+      in: query
+      name: projectId
+      required: true
+      schema:
+        type: integer
+        default: 1
+      description: ID of the test.guide project the monitoring data is requested for.
+
+    taskId:
+      in: path
+      name: taskId
+      required: true
+      schema:
+        $ref: '#/components/schemas/TaskId'
+      description: ID of the report generation task.
+
+    location:
+      in: query
+      name: location
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+      description: The exact location of a monitoring resource.
+      example: 'Headquarter/Level 1/Room 1.09'
+
+    testbench:
+      in: query
+      name: testbench
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: The exact testbench of a monitoring resource.
+      example: 'HiL_Multimedia'
+
+    machine:
+      in: query
+      name: machine
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: The exact machine of a monitoring resource.
+      example: 'PC_1'
+
+    category:
+      in: query
+      name: category
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: |
+        The category of a configuration, may contain the following wildcard characters:
+        * ? (to match any single character),
+        * \* (to match zero or more of any characters)
+      example: 'SOFTWARE/*'
+
+    label:
+      in: query
+      name: label
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: |
+        The label of a configuration, may contain the following wildcard characters:
+        * ? (to match any single character),
+        * \* (to match zero or more of any characters)
+      example: 'ECU-TEST*'
+
+    origin:
+      in: query
+      name: origin
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
+      description: Reference to identify the uploading entity (e.g. a plugin instance).
+      example: 'de.tracetronic.ttstm.monitoring.plugin.configuration.ConfigurationPlugin.1'
+
+    offset:
+      in: query
+      name: offset
+      description: The number of items to skip before starting to collect the result set.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    healthStateOrder:
+      in: query
+      name: order
+      required: false
+      description: Ascending or descending order of sorting by state change timestamp
+      schema:
+        $ref: '#/components/schemas/SortOrder'
+
+  schemas:
+    MonitoringActivitiesFilter:
+      type: object
+      properties:
+        projectId:
+          type: integer
+          default: 1
+          description: ID of the test.guide project the monitoring data is requested for.
+          example: 1
+        filterStartTime:
+          type: string
+          format: date-time
+          description: start of the filter range - format 'YYYY-MM-ddTHH:mm:ss+zz:zz'
+          example: '2019-07-31T00:00:00+02:00'
+        filterEndTime:
+          type: string
+          format: date-time
+          description: end of the filter range - format 'YYYY-MM-ddTHH:mm:ss+zz:zz'
+          example: '2019-07-31T18:00:00+02:00'
+        testbenchFilter:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestbenchFilter'
+          description: Whitelist for the testbenches the activity should be calculated for.
+          example:
+            - location: 'Headquarter/Level 1/Room 1.09'
+              testbench: 'HiL_Multimedia'
+            - location: 'Headquarter/Level 2/*'
+              testbench: '*'
+      required:
+        - projectId
+        - filterStartTime
+        - filterEndTime
+        - testbenchFilter
+      writeOnly: true
+
+    TestbenchFilter:
+      type: object
+      properties:
+        location:
+          type: string
+          default: '*'
+          example: 'Headquarter/Level 1/*'
+          description: |
+            Location of a monitoring resource, may contain forward slash character to separate multiple segments. May also contain the following wildcard characters:
+            * ? (to match any single character),
+            * \* (to match zero or more of any characters)
+          minLength: 1
+          maxLength: 512
+        testbench:
+          type: string
+          default: '*'
+          example: 'HiL_Multimedia'
+          description: |
+            Testbench of a monitoring resource, may contain the following wildcard characters:
+            * ? (to match any single character),
+            * \* (to match zero or more of any characters)
+          minLength: 1
+          maxLength: 128
+      required:
+        - location
+        - testbench
+      writeOnly: true
+
+    Activity:
+      type: object
+      properties:
+        percentage:
+          type: number
+          format: float
+          description: percentage share of time for this activity type (between 0 and 1)
+        period:
+          type: integer
+          format: int64
+          description: run time in milliseconds
+
+    ActivityDistribution:
+      type: object
+      properties:
+        offline:
+          $ref: '#/components/schemas/Activity'
+        inactive:
+          $ref: '#/components/schemas/Activity'
+        userActivity:
+          $ref: '#/components/schemas/Activity'
+        automatedTestExecution:
+          $ref: '#/components/schemas/Activity'
+        ciActivity:
+          $ref: '#/components/schemas/Activity'
+
+    HilActivity:
+      type: object
+      properties:
+        location:
+          type: string
+          example: 'Headquarter/Level 1/Room 1.09'
+          description: |
+            Location of a monitoring resource, may contain forward slash character to separate multiple segments.
+        testbench:
+          type: string
+          example: 'HiL_Multimedia'
+          description: Testbench of a monitoring resource.
+        activityDistribution:
+          $ref: '#/components/schemas/ActivityDistribution'
+
+    HilActivities:
+      type: array
+      items:
+        $ref: '#/components/schemas/HilActivity'
+
+    HealthState:
+      type: string
+      enum: [ 'INSUFFICIENT_DATA','OK','INTERVENTION_SUCCESSFUL','ACTION_IN_PROGRESS',
+              'OFFLINE','DISCONNECTED','CRASHED','MANUAL_ACTION_NECESSARY' ]
+
+    TestBenchHealthState:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent received monitoring event for this entity
+        module:
+          type: string
+        component:
+          type: string
+        information:
+          type: string
+        state:
+          $ref: '#/components/schemas/HealthState'
+        errorLevel:
+          type: integer
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TestBenchHealthStateAttribute'
+
+    TestBenchHealthStateAttribute:
+      type: object
+      properties:
+        attribute:
+          type: string
+        value:
+          type: string
+
+    TestBenchHealthStates:
+      type: array
+      items:
+        $ref: '#/components/schemas/TestBenchHealthState'
+
+    TaskRef:
+      type: object
+      readOnly: true
+      properties:
+        taskId:
+          $ref: '#/components/schemas/TaskId'
+
+    TaskId:
+      type: string
+      example: 38400000-8cf0-11bd-b23e-10b96e4ef00d
+
+    TaskProgress:
+      type: object
+      readOnly: true
+      properties:
+        name:
+          type: string
+        progressinfo:
+          type: string
+        done:
+          type: boolean
+
+    Heartbeat:
+      type: object
+      properties:
+        online:
+          type: boolean
+          description: <code>true</code> when resource is online, <code>false</code> otherwise
+        nextExpected:
+          type: string
+          format: date-time
+          description: the next expected heartbeat based on the configured polling interval
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent received monitoring event for this entity
+
+    UserActivity:
+      type: object
+      properties:
+        active:
+          type: boolean
+          description: <code>true</code> when user is active, <code>false</code> otherwise
+        lastEventDate:
+          type: string
+          format: date-time
+          description: date of the recent user activity
+        expiryDate:
+          type: string
+          format: date-time
+          description: date when the recent user activity becomes invalid
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent received monitoring event for this entity
+
+    TestExecution:
+      type: object
+      properties:
+        projectLabel:
+          type: string
+          description: name of the responsible project
+        testIdentifier:
+          type: string
+          description: string representation of the associated execution hierarchy
+          example: Projekt > Suite > Package
+        actual:
+          type: integer
+          description: index of the currently executed package
+        total:
+          type: integer
+          description: count of all packages in a project
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+        status:
+          $ref: '#/components/schemas/RunningStatus'
+        automationTool:
+          type: string
+          description: name of the test tool
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent received monitoring event for this entity
+
+    RunningStatus:
+      type: string
+      enum: [ 'STARTED','RUNNING','FINISHED','IDLE' ]
+      description: status of the current test execution
+
+    Verdict:
+      type: string
+      enum: [ 'NONE','PASSED','INCONCLUSIVE','FAILED','ERROR' ]
+      description: verdict of the current test execution
+
+    Configuration:
+      type: object
+      properties:
+        label:
+          type: string
+          description: the label of the current configuration
+        category:
+          type: string
+          description: the category of the current configuration
+        value:
+          type: string
+          description: the value of the current configuration
+        description:
+          type: string
+          description: the description of the current configuration
+        removed:
+          type: boolean
+          description: <code>true</code> when configuration is removed, <code>false</code> otherwise
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfigurationDetail'
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp of the most recent received monitoring event for this entity
+
+    ConfigurationDetail:
+      type: object
+      properties:
+        label:
+          type: string
+          description: the label of the current detail configuration
+        category:
+          type: string
+          description: the category of the current detail configuration
+        value:
+          type: string
+          description: the value of the current detail configuration
+
+    ResourceLocation:
+      type: object
+      properties:
+        location:
+          type: string
+          description: the location of the resource
+          example: 'TT/Level1/103'
+        testbench:
+          type: string
+          description: the testbench of the resource
+          example: 'TraceTroniCar'
+        machine:
+          type: string
+          description: the machine of the resource
+          example: 'PC1'
+
+    TestbenchSearchCriterion:
+      type: object
+      properties:
+        label:
+          type: string
+          description: |
+            the label of the configuration, may contain the following wildcard characters:
+            * ? (to match any single character),
+            * \* (to match zero or more of any characters)
+          example: 'ECU-TEST 8.0'
+        category:
+          type: string
+          description: |
+            the category of the configuration, may contain the following wildcard characters:
+            * ? (to match any single character),
+            * \* (to match zero or more of any characters)
+          example: 'SOFTWARE/TraceTronic GmbH, Dresden'
+        value:
+          type: string
+          description: |
+            the value of the configuration, may contain the following wildcard characters:
+            * ? (to match any single character),
+            * \* (to match zero or more of any characters)
+          example: '8.0.0'
+        details:
+          type: array
+          default: [ ]
+          items:
+            $ref: '#/components/schemas/TestbenchSearchCriterionDetail'
+      required:
+        - label
+        - category
+        - value
+
+    TestbenchSearchCriterionDetail:
+      type: object
+      properties:
+        label:
+          type: string
+          description: |
+            the label of the detail configuration, may contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          example: 'Install Date'
+        category:
+          type: string
+          description: |
+            the category of the detail configuration, may contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          default: '*'
+        value:
+          type: string
+          description: |
+            the value of the detail configuration, may contain the following wildcard characters:
+              * ? (to match any single character),
+              * \* (to match zero or more of any characters)
+          example: '20191030'
+      required:
+        - label
+        - value
+      example:
+        label: 'Install Date'
+        value: '20191030'
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 1
+        type:
+          type: string
+          example: 'error'
+        message:
+          type: string
+          example: 'This did not work.'
+      required:
+        - code
+        - type
+        - message
+
+    TestbenchActivityType:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 4
+        name:
+          type: string
+          example: 'CI activity'
+        priority:
+          type: integer
+          example: 400
+        color:
+          type: string
+          example: '#ed8a00'
+
+    TestbenchActivitiyStatus:
+      type: object
+      properties:
+        actualExecutionStep:
+          type: string
+          example: 'project1/package13'
+        actualExecutionStepNumber:
+          type: integer
+          example: 13
+        totalExecutionStepCount:
+          type: integer
+          example: 26
+        verdict:
+          $ref: '#/components/schemas/Verdict'
+
+    TestbenchActivityEvent:
+      type: object
+      properties:
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        timeout:
+          type: integer
+          format: int64
+          example: 3600000
+          description: Timeout of the activity in milliseconds
+        activityTypeId:
+          type: integer
+          example: 4
+        activityStatus:
+          $ref: '#/components/schemas/TestbenchActivitiyStatus'
+
+    TestbenchActivityEventStatusFilter:
+      type: string
+      enum: [ 'PRESENT', 'ABSENT' ]
+
+    SortOrder:
+      type: string
+      enum:
+        - ASC
+        - DESC
+      default: ASC
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

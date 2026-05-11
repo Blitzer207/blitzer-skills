@@ -1,0 +1,768 @@
+[![logo](../../_static/ecu.test.svg)](../../index.html "API  documentation") API documentation
+
+[ Internal APIs ](../api.md)
+
+[ Advanced operations of package variable types ](../variabledatastructures.md)
+
+[ Advanced properties of bus-related objects ](../busdatastructures.md)
+
+[ Bus related objects of trace analysis ](../busdatastructuresTraceanalysis.md)
+
+[ Advanced properties of diagnostics-related objects ](../diagdatastructures.md)
+
+[ Diagnostics related objects of trace analysis ](../diagdatastructuresTraceanalysis.md)
+
+[ Advanced properties of media-related objects ](../mediadatastructures.md)
+
+[ Advanced properties of DLT logging-related objects ](../dltdatastructures.md)
+
+[ COM API ](../com-api.md)
+
+[ REST API ](../rest-api.md)
+
+[ Report API ](../apireport.md)
+
+[ Object API ](../objectApi.md)
+
+Object API
+
+[ API entry points ](../objectApi.md#api-entry-points)
+
+API entry points
+
+[ API for Analysis Jobs ](../AnalysisJobApi.md)
+
+[ API for Artifacts ](../ArtifactApi.md)
+
+[ API for Project Components ](../ComponentApi.md)
+
+[ API for Configurations ](../ConfigurationApi.md)
+
+[ API for Expectations ](../ExpectationApi.md)
+
+[ API for Expressions ](../ExpressionApi.md)
+
+[ API for Global Mappings ](../GlobalMappingApi.md)
+
+[ API for Mappings ](../MappingApi.md)
+
+[ API for Multimedia Objects ](../MultimediaApi.md)
+
+[ API for Packages ](../PackageApi.md)
+
+[ API for Parameters ](../ParameterApi.md)
+
+[ API for Projects ](../ProjectApi.md)
+
+[ API for Relations ](../RelationApi.md)
+
+[ API for Reports ](../ReportApi.md)
+
+[ API for Report Filters ](../ReportFilterApi.md)
+
+[ API for Settings ](../SettingsApi.md)
+
+[ API for Signals ](../SignalApi.md)
+
+[ API for Signal Descriptions ](../SignalDescriptionApi.md)
+
+[ API for Signal Recordings ](../SignalRecordingApi.md)
+
+[ API for Symbols ](../SymbolApi.md)
+
+[ API for Test Steps ](../TestStepApi.md)
+
+API for Test Steps
+
+[ EdiabasArgument ](EdiabasArgument.md)
+
+[ EdiabasResult ](EdiabasResult.md)
+
+[ ImageFilter ](ImageFilter.md)
+
+[ Node ](Node.md)
+
+[ TouchInputAction ](TouchInputAction.md)
+
+[ TsAddTrace ](TsAddTrace.md)
+
+[ TsAlterPDUTiming ](TsAlterPDUTiming.md)
+
+[ TsAnalysisJob ](TsAnalysisJob.md)
+
+[ TsAssertion ](TsAssertion.md)
+
+[ TsBitExtract ](TsBitExtract.md)
+
+[ TsBlock ](TsBlock.md)
+
+[ TsBreak ](TsBreak.md)
+
+[ TsBusFirstSignalCheck ](TsBusFirstSignalCheck.md)
+
+[ TsBusFirstSignalReset ](TsBusFirstSignalReset.md)
+
+[ TsBusMonitoringAliveCounter ](TsBusMonitoringAliveCounter.md)
+
+[ TsBusMonitoringChecksum ](TsBusMonitoringChecksum.md)
+
+[ TsBusMonitoringDlc ](TsBusMonitoringDlc.md)
+
+[ TsBusMonitoringFrameTiming ](TsBusMonitoringFrameTiming.md)
+
+[ TsCANoeTestModuleRunner ](TsCANoeTestModuleRunner.md)
+
+[ TsCalculation ](TsCalculation.md)
+
+[ TsCall ](TsCall.md)
+
+[ TsCallDiagObdOnUdsService ](TsCallDiagObdOnUdsService.md)
+
+[ TsCallDiagService ](TsCallDiagService.md)
+
+[ TsCallIOControl ](TsCallIOControl.md)
+
+[ TsCallIOControlFreezeCurrentState ](TsCallIOControlFreezeCurrentState.md)
+
+[ TsCallIOControlISOSAEReserved ](TsCallIOControlISOSAEReserved.md)
+
+[ TsCallIOControlResetToDefault ](TsCallIOControlResetToDefault.md)
+
+[ TsCallIOControlReturnControlToEcu ](TsCallIOControlReturnControlToEcu.md)
+
+[ TsCallIOControlShortTermAdjustment ](TsCallIOControlShortTermAdjustment.md)
+
+[ TsCallKwpIOControlFreeze ](TsCallKwpIOControlFreeze.md)
+
+[ TsCallKwpIOControlLongTermAdjustment ](TsCallKwpIOControlLongTermAdjustment.md)
+
+[ TsCallKwpIOControlReportCurrentState ](TsCallKwpIOControlReportCurrentState.md)
+
+[ TsCallKwpIOControlResetToDefault ](TsCallKwpIOControlResetToDefault.md)
+
+[ TsCallKwpIOControlReturnControlToEcu ](TsCallKwpIOControlReturnControlToEcu.md)
+
+[ TsCallKwpIOControlShortTermAdjustment ](TsCallKwpIOControlShortTermAdjustment.md)
+
+[ TsCallProvideMethod ](TsCallProvideMethod.md)
+
+[ TsCallRead ](TsCallRead.md)
+
+[ TsCallWrite ](TsCallWrite.md)
+
+[ TsCaseDefNode ](TsCaseDefNode.md)
+
+[ TsCaseNode ](TsCaseNode.md)
+
+[ TsCheckSimulationStatus ](TsCheckSimulationStatus.md)
+
+[ TsClearFrameAndSignalBuffers ](TsClearFrameAndSignalBuffers.md)
+
+[ TsComment ](TsComment.md)
+
+[ TsContinue ](TsContinue.md)
+
+[ TsEdiabas ](TsEdiabas.md)
+
+[ TsEdiabasLockBlock ](TsEdiabasLockBlock.md)
+
+[ TsEesError ](TsEesError.md)
+
+[ TsEesErrorSet ](TsEesErrorSet.md)
+
+[ TsExit ](TsExit.md)
+
+[ TsIfDef ](TsIfDef.md)
+
+[ TsIfThenElse ](TsIfThenElse.md)
+
+[ TsImageDialog ](TsImageDialog.md)
+
+[ TsInboxFetch ](TsInboxFetch.md)
+
+[ TsInfoBlock ](TsInfoBlock.md)
+
+[ TsInputDialog ](TsInputDialog.md)
+
+[ TsJob ](TsJob.md)
+
+[ TsKeyword ](TsKeyword.md)
+
+[ TsKeywordArgument ](TsKeywordArgument.md)
+
+[ TsKeywordReturn ](TsKeywordReturn.md)
+
+[ TsLoadEnvironment ](TsLoadEnvironment.md)
+
+[ TsLogFile ](TsLogFile.md)
+
+[ TsLoop ](TsLoop.md)
+
+[ TsMessageDialog ](TsMessageDialog.md)
+
+[ TsMultiCheck ](TsMultiCheck.md)
+
+[ TsOutboxPost ](TsOutboxPost.md)
+
+[ TsPackage ](TsPackage.md)
+
+[ TsPackageCall ](TsPackageCall.md)
+
+[ TsParallelPackageCall ](TsParallelPackageCall.md)
+
+[ TsParallelRttPackageCall ](TsParallelRttPackageCall.md)
+
+[ TsPostconditionBlock ](TsPostconditionBlock.md)
+
+[ TsPreconditionBlock ](TsPreconditionBlock.md)
+
+[ TsReactOn ](TsReactOn.md)
+
+[ TsReactOnNode ](TsReactOnNode.md)
+
+[ TsRead ](TsRead.md)
+
+TsReadAudio [ TsReadAudio ](#)
+
+TsReadAudio
+
+- [C TsReadAudio ](#ApiClient.TsReadAudio)
+  - [M AddTag ](#ApiClient.TsReadAudio.AddTag)
+  - [M Clone ](#ApiClient.TsReadAudio.Clone)
+  - [M DeactivateExpectation ](#ApiClient.TsReadAudio.DeactivateExpectation)
+  - [M DeactivateSaveIn ](#ApiClient.TsReadAudio.DeactivateSaveIn)
+  - [M DeleteTranslatedCommentText ](#ApiClient.TsReadAudio.DeleteTranslatedCommentText)
+  - [M GetActionColumnText ](#ApiClient.TsReadAudio.GetActionColumnText)
+  - [M GetComment ](#ApiClient.TsReadAudio.GetComment)
+  - [M GetCommentColumnText ](#ApiClient.TsReadAudio.GetCommentColumnText)
+  - [M GetError ](#ApiClient.TsReadAudio.GetError)
+  - [M GetExpectation ](#ApiClient.TsReadAudio.GetExpectation)
+  - [M GetExpectationExpression ](#ApiClient.TsReadAudio.GetExpectationExpression)
+  - [M GetIndex ](#ApiClient.TsReadAudio.GetIndex)
+  - [M GetLineNo ](#ApiClient.TsReadAudio.GetLineNo)
+  - [M GetMappingItemReferenceName ](#ApiClient.TsReadAudio.GetMappingItemReferenceName)
+  - [M GetParameterColumnText ](#ApiClient.TsReadAudio.GetParameterColumnText)
+  - [M GetParent ](#ApiClient.TsReadAudio.GetParent)
+  - [M GetRecordingDurationExpression ](#ApiClient.TsReadAudio.GetRecordingDurationExpression)
+  - [M GetRecordingDurationUnit ](#ApiClient.TsReadAudio.GetRecordingDurationUnit)
+  - [M GetRepresentation ](#ApiClient.TsReadAudio.GetRepresentation)
+  - [M GetSaveInVariableName ](#ApiClient.TsReadAudio.GetSaveInVariableName)
+  - [M GetTags ](#ApiClient.TsReadAudio.GetTags)
+  - [M GetTestManagementId ](#ApiClient.TsReadAudio.GetTestManagementId)
+  - [M GetTestStepId ](#ApiClient.TsReadAudio.GetTestStepId)
+  - [M GetTranslatedCommentText ](#ApiClient.TsReadAudio.GetTranslatedCommentText)
+  - [M GetType ](#ApiClient.TsReadAudio.GetType)
+  - [M GetUnit ](#ApiClient.TsReadAudio.GetUnit)
+  - [M GetValueColumnText ](#ApiClient.TsReadAudio.GetValueColumnText)
+  - [M IsBreakpoint ](#ApiClient.TsReadAudio.IsBreakpoint)
+  - [M IsContainer ](#ApiClient.TsReadAudio.IsContainer)
+  - [M IsEnabled ](#ApiClient.TsReadAudio.IsEnabled)
+  - [M IsInPostcondition ](#ApiClient.TsReadAudio.IsInPostcondition)
+  - [M IsInPrecondition ](#ApiClient.TsReadAudio.IsInPrecondition)
+  - [M IsOk ](#ApiClient.TsReadAudio.IsOk)
+  - [M IsVisible ](#ApiClient.TsReadAudio.IsVisible)
+  - [M RemoveTag ](#ApiClient.TsReadAudio.RemoveTag)
+  - [M SetBreakpoint ](#ApiClient.TsReadAudio.SetBreakpoint)
+  - [M SetComment ](#ApiClient.TsReadAudio.SetComment)
+  - [M SetEnabled ](#ApiClient.TsReadAudio.SetEnabled)
+  - [M SetExpectation ](#ApiClient.TsReadAudio.SetExpectation)
+  - [M SetExpectationExpression ](#ApiClient.TsReadAudio.SetExpectationExpression)
+  - [M SetRecordingDuration ](#ApiClient.TsReadAudio.SetRecordingDuration)
+  - [M SetRepresentation ](#ApiClient.TsReadAudio.SetRepresentation)
+  - [M SetSaveInVariableName ](#ApiClient.TsReadAudio.SetSaveInVariableName)
+  - [M SetTags ](#ApiClient.TsReadAudio.SetTags)
+  - [M SetTestManagementId ](#ApiClient.TsReadAudio.SetTestManagementId)
+  - [M SetTranslatedCommentText ](#ApiClient.TsReadAudio.SetTranslatedCommentText)
+  - [M SetUnit ](#ApiClient.TsReadAudio.SetUnit)
+
+[ TsReadBusSignalGroup ](TsReadBusSignalGroup.md)
+
+[ TsReadFaultMemory ](TsReadFaultMemory.md)
+
+[ TsReadImage ](TsReadImage.md)
+
+[ TsReport ](TsReport.md)
+
+[ TsRequestAnalysis ](TsRequestAnalysis.md)
+
+[ TsResetPDUTiming ](TsResetPDUTiming.md)
+
+[ TsRestore ](TsRestore.md)
+
+[ TsReturn ](TsReturn.md)
+
+[ TsRttPackageCall ](TsRttPackageCall.md)
+
+[ TsSelectList ](TsSelectList.md)
+
+[ TsSetTraceComment ](TsSetTraceComment.md)
+
+[ TsSimulate ](TsSimulate.md)
+
+[ TsStartSimulation ](TsStartSimulation.md)
+
+[ TsStartStimulus ](TsStartStimulus.md)
+
+[ TsStartTrace ](TsStartTrace.md)
+
+[ TsStimulate ](TsStimulate.md)
+
+[ TsStopOfferService ](TsStopOfferService.md)
+
+[ TsStopSimulation ](TsStopSimulation.md)
+
+[ TsStopStimulus ](TsStopStimulus.md)
+
+[ TsStopTrace ](TsStopTrace.md)
+
+[ TsSwitchCase ](TsSwitchCase.md)
+
+[ TsSwitchDefCase ](TsSwitchDefCase.md)
+
+[ TsTodo ](TsTodo.md)
+
+[ TsTouchInput ](TsTouchInput.md)
+
+[ TsTraceStepResult ](TsTraceStepResult.md)
+
+[ TsWait ](TsWait.md)
+
+[ TsWaitForUser ](TsWaitForUser.md)
+
+[ TsWrite ](TsWrite.md)
+
+[ TsWriteAudio ](TsWriteAudio.md)
+
+[ TsWriteBusSignalGroup ](TsWriteBusSignalGroup.md)
+
+[ TsWriteBusSignalGroupCyclic ](TsWriteBusSignalGroupCyclic.md)
+
+[ API for Touch Inputs ](../TouchInputApi.md)
+
+[ API for Trace Analyses ](../TraceAnalysisApi.md)
+
+[ API for Trace Files ](../TraceFileApi.md)
+
+[ API for Trace Step Templates ](../TraceStepTemplateApi.md)
+
+[ API for Variables ](../VariableApi.md)
+
+[ API for Workspaces ](../WorkspaceApi.md)
+
+[ Trace Analysis API ](../../TraceAnalysisAPI/index.md)
+
+[ Generator APIs ](../../generators/index.md)
+
+[ Tools ](../../tools/index.md)
+
+[ User test management ](../../userTestmanagement/index.md)
+
+[ UserUtility API ](../../user-utility/user-utility.md)
+
+[ Utility Examples ](../../user-utility/example-utilities.md)
+
+TsReadAudio
+
+- [C TsReadAudio ](#ApiClient.TsReadAudio)
+  - [M AddTag ](#ApiClient.TsReadAudio.AddTag)
+  - [M Clone ](#ApiClient.TsReadAudio.Clone)
+  - [M DeactivateExpectation ](#ApiClient.TsReadAudio.DeactivateExpectation)
+  - [M DeactivateSaveIn ](#ApiClient.TsReadAudio.DeactivateSaveIn)
+  - [M DeleteTranslatedCommentText ](#ApiClient.TsReadAudio.DeleteTranslatedCommentText)
+  - [M GetActionColumnText ](#ApiClient.TsReadAudio.GetActionColumnText)
+  - [M GetComment ](#ApiClient.TsReadAudio.GetComment)
+  - [M GetCommentColumnText ](#ApiClient.TsReadAudio.GetCommentColumnText)
+  - [M GetError ](#ApiClient.TsReadAudio.GetError)
+  - [M GetExpectation ](#ApiClient.TsReadAudio.GetExpectation)
+  - [M GetExpectationExpression ](#ApiClient.TsReadAudio.GetExpectationExpression)
+  - [M GetIndex ](#ApiClient.TsReadAudio.GetIndex)
+  - [M GetLineNo ](#ApiClient.TsReadAudio.GetLineNo)
+  - [M GetMappingItemReferenceName ](#ApiClient.TsReadAudio.GetMappingItemReferenceName)
+  - [M GetParameterColumnText ](#ApiClient.TsReadAudio.GetParameterColumnText)
+  - [M GetParent ](#ApiClient.TsReadAudio.GetParent)
+  - [M GetRecordingDurationExpression ](#ApiClient.TsReadAudio.GetRecordingDurationExpression)
+  - [M GetRecordingDurationUnit ](#ApiClient.TsReadAudio.GetRecordingDurationUnit)
+  - [M GetRepresentation ](#ApiClient.TsReadAudio.GetRepresentation)
+  - [M GetSaveInVariableName ](#ApiClient.TsReadAudio.GetSaveInVariableName)
+  - [M GetTags ](#ApiClient.TsReadAudio.GetTags)
+  - [M GetTestManagementId ](#ApiClient.TsReadAudio.GetTestManagementId)
+  - [M GetTestStepId ](#ApiClient.TsReadAudio.GetTestStepId)
+  - [M GetTranslatedCommentText ](#ApiClient.TsReadAudio.GetTranslatedCommentText)
+  - [M GetType ](#ApiClient.TsReadAudio.GetType)
+  - [M GetUnit ](#ApiClient.TsReadAudio.GetUnit)
+  - [M GetValueColumnText ](#ApiClient.TsReadAudio.GetValueColumnText)
+  - [M IsBreakpoint ](#ApiClient.TsReadAudio.IsBreakpoint)
+  - [M IsContainer ](#ApiClient.TsReadAudio.IsContainer)
+  - [M IsEnabled ](#ApiClient.TsReadAudio.IsEnabled)
+  - [M IsInPostcondition ](#ApiClient.TsReadAudio.IsInPostcondition)
+  - [M IsInPrecondition ](#ApiClient.TsReadAudio.IsInPrecondition)
+  - [M IsOk ](#ApiClient.TsReadAudio.IsOk)
+  - [M IsVisible ](#ApiClient.TsReadAudio.IsVisible)
+  - [M RemoveTag ](#ApiClient.TsReadAudio.RemoveTag)
+  - [M SetBreakpoint ](#ApiClient.TsReadAudio.SetBreakpoint)
+  - [M SetComment ](#ApiClient.TsReadAudio.SetComment)
+  - [M SetEnabled ](#ApiClient.TsReadAudio.SetEnabled)
+  - [M SetExpectation ](#ApiClient.TsReadAudio.SetExpectation)
+  - [M SetExpectationExpression ](#ApiClient.TsReadAudio.SetExpectationExpression)
+  - [M SetRecordingDuration ](#ApiClient.TsReadAudio.SetRecordingDuration)
+  - [M SetRepresentation ](#ApiClient.TsReadAudio.SetRepresentation)
+  - [M SetSaveInVariableName ](#ApiClient.TsReadAudio.SetSaveInVariableName)
+  - [M SetTags ](#ApiClient.TsReadAudio.SetTags)
+  - [M SetTestManagementId ](#ApiClient.TsReadAudio.SetTestManagementId)
+  - [M SetTranslatedCommentText ](#ApiClient.TsReadAudio.SetTranslatedCommentText)
+  - [M SetUnit ](#ApiClient.TsReadAudio.SetUnit)
+
+# TsReadAudio[¶](#tsreadaudio "Link to this heading")
+
+*class* TsReadAudio[¶](#ApiClient.TsReadAudio "Link to this definition")  
+Returned by
+
+- [`TestStepApi.CreateTsReadAudio`](../TestStepApi.md#ApiClient.TestStepApi.CreateTsReadAudio "ApiClient.TestStepApi.CreateTsReadAudio (Python method) — Create a test step to record audio from the test quantity that is referenced by the mapping item.")
+
+AddTag(*[tag](#ApiClient.TsReadAudio.AddTag.tag "ApiClient.TsReadAudio.AddTag.tag (Python parameter) — The tag to be set")*)[¶](#ApiClient.TsReadAudio.AddTag "Link to this definition")  
+Add a specific tag to this step.
+
+Parameters:  tag : str[¶](#ApiClient.TsReadAudio.AddTag.tag "Permalink to this definition")  
+The tag to be set
+
+Clone()[¶](#ApiClient.TsReadAudio.Clone "Link to this definition")  
+Call this method if you want to use API-objects in multiple contexts, e.g. if you want to insert a specific test step in multiple blocks.
+
+Returns:  A copy of this object
+
+Return type:  [`TsReadAudio`](#ApiClient.TsReadAudio "ApiClient.TsReadAudio (Python class) — TestStepApi.CreateTsReadAudio")
+
+DeactivateExpectation()[¶](#ApiClient.TsReadAudio.DeactivateExpectation "Link to this definition")  
+Deactivates the expectation so that the result will not be evaluated.
+
+DeactivateSaveIn()[¶](#ApiClient.TsReadAudio.DeactivateSaveIn "Link to this definition")  
+Deactivates the test step’s save in property, so the value will not be stored in a package variable.
+
+DeleteTranslatedCommentText(*[language](#ApiClient.TsReadAudio.DeleteTranslatedCommentText.language "ApiClient.TsReadAudio.DeleteTranslatedCommentText.language (Python parameter) — Language of the text ('en_US', 'de_DE', 'zh_CN')")*)[¶](#ApiClient.TsReadAudio.DeleteTranslatedCommentText "Link to this definition")  
+Deletes a comment for the test step in the given language.
+
+Parameters:  language : str[¶](#ApiClient.TsReadAudio.DeleteTranslatedCommentText.language "Permalink to this definition")  
+Language of the text (‘en_US’, ‘de_DE’, ‘zh_CN’)
+
+GetActionColumnText()[¶](#ApiClient.TsReadAudio.GetActionColumnText "Link to this definition")  
+Returns the text value of the “action” column.
+
+Returns:  Action column text
+
+Return type:  str
+
+GetComment()[¶](#ApiClient.TsReadAudio.GetComment "Link to this definition")  
+Returns the comment of the test step in the current test case language.
+
+Returns:  Comment text as shown in the comment tab
+
+Return type:  str
+
+GetCommentColumnText()[¶](#ApiClient.TsReadAudio.GetCommentColumnText "Link to this definition")  
+Returns the text value of the “comment” column.
+
+Returns:  Comment column text
+
+Return type:  str
+
+GetError()[¶](#ApiClient.TsReadAudio.GetError "Link to this definition")  
+Returns a list of errors. Note that the error messages depend on the program language ecu.test is set to. Because of that we do not recommend to check against exact error messages, unless you are certain about the respective program language.
+
+Returns:  List of errors
+
+Return type:  list[str]
+
+GetExpectation()[¶](#ApiClient.TsReadAudio.GetExpectation "Link to this definition")  
+Returns the expectation expression from the evaluation of the test step, or None, if no expectation was defined.
+
+Returns:  The expectation
+
+Return type:  [`Expectation`](../ExpectationApi/Expectation.md#ApiClient.Expectation "ApiClient.Expectation (Python class) — Call this method if you want to use API-objects in multiple contexts, e.g. if you want to insert a specific test step in multiple blocks.")
+
+GetExpectationExpression()[¶](#ApiClient.TsReadAudio.GetExpectationExpression "Link to this definition")  
+Returns the expectation expression from the evaluation of the test step, or None, if no expectation was defined.
+
+Returns:  The expectation
+
+Return type:  string
+
+GetIndex()[¶](#ApiClient.TsReadAudio.GetIndex "Link to this definition")  
+Returns the zero based index in the parent.
+
+Returns:  Zero based index
+
+Return type:  integer
+
+GetLineNo()[¶](#ApiClient.TsReadAudio.GetLineNo "Link to this definition")  
+Returns the test steps line number within its test case.
+
+Returns:  Line number
+
+Return type:  int
+
+GetMappingItemReferenceName()[¶](#ApiClient.TsReadAudio.GetMappingItemReferenceName "Link to this definition")  
+Returns the unique reference name of the mapping item used by this test step.
+
+Returns:  Reference name of used mapping item
+
+Return type:  str
+
+GetParameterColumnText()[¶](#ApiClient.TsReadAudio.GetParameterColumnText "Link to this definition")  
+Returns the text value of the “parameter” column.
+
+Returns:  Parameter column text
+
+Return type:  str
+
+GetParent()[¶](#ApiClient.TsReadAudio.GetParent "Link to this definition")  
+Returns the parent test step.
+
+Returns:  The parent test step or None if it is a top level test step.
+
+Return type:  [`TestStep`](../PackageApi/TestStep.md#ApiClient.TestStep "ApiClient.TestStep (Python class) — Add a specific tag to this step.")
+
+GetRecordingDurationExpression()[¶](#ApiClient.TsReadAudio.GetRecordingDurationExpression "Link to this definition")  
+Returns the expression that determines the recording duration.
+
+Returns:  Recording duration
+
+Return type:  str
+
+GetRecordingDurationUnit()[¶](#ApiClient.TsReadAudio.GetRecordingDurationUnit "Link to this definition")  
+Returns the unit of the recording duration.
+
+Returns:  Unit of time (ms, s, min, h, d)
+
+Return type:  str
+
+GetRepresentation(*[axis](#ApiClient.TsReadAudio.GetRepresentation.axis "ApiClient.TsReadAudio.GetRepresentation.axis (Python parameter) — Axis to set representation for (x, y, z)")=`'z'`*)[¶](#ApiClient.TsReadAudio.GetRepresentation "Link to this definition")  
+Returns the representation of a certain axis of the accessed test quantity.
+
+Parameters:  axis : str[¶](#ApiClient.TsReadAudio.GetRepresentation.axis "Permalink to this definition")  
+Axis to set representation for (x, y, z)
+
+Returns:  Representation for axis (PHYS, TEXT, RAW, BITS)
+
+Return type:  str
+
+GetSaveInVariableName()[¶](#ApiClient.TsReadAudio.GetSaveInVariableName "Link to this definition")  
+Returns the currently selected variable to save the data.
+
+Returns:  The variable’s name
+
+Return type:  string
+
+GetTags()[¶](#ApiClient.TsReadAudio.GetTags "Link to this definition")  
+Returns the tags set for this step.
+
+Returns:  A (sorted) list of tags
+
+Return type:  list[str]
+
+GetTestManagementId()[¶](#ApiClient.TsReadAudio.GetTestManagementId "Link to this definition")  
+Returns the test management id of the test step.
+
+Returns:  Test step id.
+
+Return type:  str
+
+GetTestStepId()[¶](#ApiClient.TsReadAudio.GetTestStepId "Link to this definition")  
+Returns the test step id.
+
+Returns:  test step id
+
+Return type:  str
+
+GetTranslatedCommentText(*[language](#ApiClient.TsReadAudio.GetTranslatedCommentText.language "ApiClient.TsReadAudio.GetTranslatedCommentText.language (Python parameter) — Language of the requested text ('en_US', 'de_DE', 'zh_CN')")*)[¶](#ApiClient.TsReadAudio.GetTranslatedCommentText "Link to this definition")  
+Returns the text value of the “comment” column in the given language.
+
+Parameters:  language : str[¶](#ApiClient.TsReadAudio.GetTranslatedCommentText.language "Permalink to this definition")  
+Language of the requested text (‘en_US’, ‘de_DE’, ‘zh_CN’)
+
+Returns:  Comment column text
+
+Return type:  str
+
+GetType()[¶](#ApiClient.TsReadAudio.GetType "Link to this definition")  
+Returns the type (class name) of the test step, e.g.
+
+- “TsPreconditionBlock”
+
+- “TsWait”
+
+- “TsIfThenElse”
+
+- “TsSwitchCase”
+
+- “TsCaseNode”
+
+Returns:  Type (class name) of the test step
+
+Return type:  str
+
+GetUnit(*[axis](#ApiClient.TsReadAudio.GetUnit.axis "ApiClient.TsReadAudio.GetUnit.axis (Python parameter) — Axis to set unit for (x, y, z)")=`'z'`*)[¶](#ApiClient.TsReadAudio.GetUnit "Link to this definition")  
+Returns the unit of a certain axis of the accessed test quantity.
+
+Parameters:  axis : str[¶](#ApiClient.TsReadAudio.GetUnit.axis "Permalink to this definition")  
+Axis to set unit for (x, y, z)
+
+Returns:  Unit for axis
+
+Return type:  str
+
+GetValueColumnText()[¶](#ApiClient.TsReadAudio.GetValueColumnText "Link to this definition")  
+Returns the text value of the “value” column in your current test case language.
+
+Returns:  Value column text
+
+Return type:  str
+
+IsBreakpoint()[¶](#ApiClient.TsReadAudio.IsBreakpoint "Link to this definition")  
+Checks whether the test step is a break point.
+
+Returns:  True if test step is a break point, else False
+
+Return type:  boolean
+
+IsContainer()[¶](#ApiClient.TsReadAudio.IsContainer "Link to this definition")  
+Returns True, if the test step supports calling GetChildren as well as manipulating the structure of its children. (e. g. via inserting or deleting sub test steps).
+
+Returns:  True if it can contain test steps, else False
+
+Return type:  boolean
+
+IsEnabled()[¶](#ApiClient.TsReadAudio.IsEnabled "Link to this definition")  
+Returns the state of the test step.
+
+Returns:  True if test step is enabled, otherwise False
+
+Return type:  bool
+
+IsInPostcondition()[¶](#ApiClient.TsReadAudio.IsInPostcondition "Link to this definition")  
+Returns True if the test step is located in a postcondition
+
+Returns:  True if the test step is located in a postcondition, else Flase
+
+Return type:  bool
+
+IsInPrecondition()[¶](#ApiClient.TsReadAudio.IsInPrecondition "Link to this definition")  
+Returns True if the test step is located in a precondition
+
+Returns:  True if the test step is located in a precondition, else False
+
+Return type:  bool
+
+IsOk()[¶](#ApiClient.TsReadAudio.IsOk "Link to this definition")  
+Returns the internal state of correctness of the test step.
+
+Returns:  True if no problems were found, else False
+
+Return type:  boolean
+
+IsVisible()[¶](#ApiClient.TsReadAudio.IsVisible "Link to this definition")  
+Checks whether the test step is visible. This depends on the test step itself or a parent test step being disabled.
+
+Returns:  True if test step is visible, else False
+
+Return type:  boolean
+
+RemoveTag(*[tag](#ApiClient.TsReadAudio.RemoveTag.tag "ApiClient.TsReadAudio.RemoveTag.tag (Python parameter) — The tag to be removed")*)[¶](#ApiClient.TsReadAudio.RemoveTag "Link to this definition")  
+Remove a specific tag from this step.
+
+Parameters:  tag : str[¶](#ApiClient.TsReadAudio.RemoveTag.tag "Permalink to this definition")  
+The tag to be removed
+
+SetBreakpoint(*[enable](#ApiClient.TsReadAudio.SetBreakpoint.enable "ApiClient.TsReadAudio.SetBreakpoint.enable (Python parameter) — True if test step is a break point, else False")*)[¶](#ApiClient.TsReadAudio.SetBreakpoint "Link to this definition")  
+Sets or unsets the test step to act as a break point.
+
+Parameters:  enable : boolean[¶](#ApiClient.TsReadAudio.SetBreakpoint.enable "Permalink to this definition")  
+True if test step is a break point, else False
+
+SetComment(*[comment](#ApiClient.TsReadAudio.SetComment.comment "ApiClient.TsReadAudio.SetComment.comment (Python parameter) — Text to be displayed in the comment tab")*)[¶](#ApiClient.TsReadAudio.SetComment "Link to this definition")  
+Sets a comment for the test step in the current test case language.
+
+Parameters:  comment : str[¶](#ApiClient.TsReadAudio.SetComment.comment "Permalink to this definition")  
+Text to be displayed in the comment tab
+
+SetEnabled(*[state](#ApiClient.TsReadAudio.SetEnabled.state "ApiClient.TsReadAudio.SetEnabled.state (Python parameter) — True (Default) to enable, False to disable the test step.")=`True`*)[¶](#ApiClient.TsReadAudio.SetEnabled "Link to this definition")  
+Enable or disable the test step.
+
+Parameters:  state : bool[¶](#ApiClient.TsReadAudio.SetEnabled.state "Permalink to this definition")  
+True (Default) to enable, False to disable the test step.
+
+SetExpectation(*[expectation](#ApiClient.TsReadAudio.SetExpectation.expectation "ApiClient.TsReadAudio.SetExpectation.expectation (Python parameter) — The expectation")*)[¶](#ApiClient.TsReadAudio.SetExpectation "Link to this definition")  
+Sets the expectation in the evaluation of the test step. The expectation will be activated if it was not enabled previously.
+
+Parameters:  expectation[¶](#ApiClient.TsReadAudio.SetExpectation.expectation "Permalink to this definition")  
+The expectation
+
+SetExpectationExpression(*[expectation](#ApiClient.TsReadAudio.SetExpectationExpression.expectation "ApiClient.TsReadAudio.SetExpectationExpression.expectation (Python parameter) — The expectation")*)[¶](#ApiClient.TsReadAudio.SetExpectationExpression "Link to this definition")  
+Shortcut to set an expectation for an unspecific type in the evaluation of the test step. The expectation will be activated if it was not enabled previously.
+
+Parameters:  expectation : string[¶](#ApiClient.TsReadAudio.SetExpectationExpression.expectation "Permalink to this definition")  
+The expectation
+
+SetRecordingDuration(*[duration](#ApiClient.TsReadAudio.SetRecordingDuration.duration "ApiClient.TsReadAudio.SetRecordingDuration.duration (Python parameter) — Recording duration expression.")*, *[unit](#ApiClient.TsReadAudio.SetRecordingDuration.unit "ApiClient.TsReadAudio.SetRecordingDuration.unit (Python parameter) — Unit of time (ms, s, min, h, d)")*)[¶](#ApiClient.TsReadAudio.SetRecordingDuration "Link to this definition")  
+Sets the recording duration.
+
+Parameters:  duration : str[¶](#ApiClient.TsReadAudio.SetRecordingDuration.duration "Permalink to this definition")  
+Recording duration expression.
+
+unit : str[¶](#ApiClient.TsReadAudio.SetRecordingDuration.unit "Permalink to this definition")  
+Unit of time (ms, s, min, h, d)
+
+Returns:  
+
+SetRepresentation(*[representation](#ApiClient.TsReadAudio.SetRepresentation.representation "ApiClient.TsReadAudio.SetRepresentation.representation (Python parameter) — Representation for axis (PHYS, TEXT, RAW, BITS)")=`'PHYS'`*, *[axis](#ApiClient.TsReadAudio.SetRepresentation.axis "ApiClient.TsReadAudio.SetRepresentation.axis (Python parameter) — Axis to set representation for (x, y, z)")=`'z'`*)[¶](#ApiClient.TsReadAudio.SetRepresentation "Link to this definition")  
+Sets the representation of a certain axis of the accessed test quantity.
+
+Parameters:  representation : str[¶](#ApiClient.TsReadAudio.SetRepresentation.representation "Permalink to this definition")  
+Representation for axis (PHYS, TEXT, RAW, BITS)
+
+axis : str[¶](#ApiClient.TsReadAudio.SetRepresentation.axis "Permalink to this definition")  
+Axis to set representation for (x, y, z)
+
+SetSaveInVariableName(*[variableName](#ApiClient.TsReadAudio.SetSaveInVariableName.variableName "ApiClient.TsReadAudio.SetSaveInVariableName.variableName (Python parameter) — The variable's name.")*)[¶](#ApiClient.TsReadAudio.SetSaveInVariableName "Link to this definition")  
+Sets the name of the variable used for storing data by the test step. The variable will be created automatically if it does not already exist in the package where the test step is placed in. This method must not be called, if the test step has not been added to a package previously.
+
+Parameters:  variableName : string[¶](#ApiClient.TsReadAudio.SetSaveInVariableName.variableName "Permalink to this definition")  
+The variable’s name. Must not be None or an empty string.
+
+Raises:  
+**ApiError** –
+
+- If SaveIn was called before the test step was added to a package.
+
+- If variableName is None or an empty string
+
+SetTags(*[tags](#ApiClient.TsReadAudio.SetTags.tags "ApiClient.TsReadAudio.SetTags.tags (Python parameter) — The list of tags")*)[¶](#ApiClient.TsReadAudio.SetTags "Link to this definition")  
+Set the list of tags for this step. The list of tags will be sorted and stored.
+
+Parameters:  tags : list[str][¶](#ApiClient.TsReadAudio.SetTags.tags "Permalink to this definition")  
+The list of tags
+
+SetTestManagementId(*[testManagementId](#ApiClient.TsReadAudio.SetTestManagementId.testManagementId "ApiClient.TsReadAudio.SetTestManagementId.testManagementId (Python parameter) — Test management id of the test step")*)[¶](#ApiClient.TsReadAudio.SetTestManagementId "Link to this definition")  
+Sets the test management id of the test step.
+
+Parameters:  testManagementId : str[¶](#ApiClient.TsReadAudio.SetTestManagementId.testManagementId "Permalink to this definition")  
+Test management id of the test step
+
+SetTranslatedCommentText(*[comment](#ApiClient.TsReadAudio.SetTranslatedCommentText.comment "ApiClient.TsReadAudio.SetTranslatedCommentText.comment (Python parameter) — Text to be displayed")*, *[language](#ApiClient.TsReadAudio.SetTranslatedCommentText.language "ApiClient.TsReadAudio.SetTranslatedCommentText.language (Python parameter) — Language of the text ('en_US', 'de_DE', 'zh_CN')")*)[¶](#ApiClient.TsReadAudio.SetTranslatedCommentText "Link to this definition")  
+Sets a comment for the test step in the given language.
+
+Parameters:  comment : str[¶](#ApiClient.TsReadAudio.SetTranslatedCommentText.comment "Permalink to this definition")  
+Text to be displayed
+
+language : str[¶](#ApiClient.TsReadAudio.SetTranslatedCommentText.language "Permalink to this definition")  
+Language of the text (‘en_US’, ‘de_DE’, ‘zh_CN’)
+
+SetUnit(*[unit](#ApiClient.TsReadAudio.SetUnit.unit "ApiClient.TsReadAudio.SetUnit.unit (Python parameter) — Unit for axis")*, *[axis](#ApiClient.TsReadAudio.SetUnit.axis "ApiClient.TsReadAudio.SetUnit.axis (Python parameter) — Axis to set unit for (x, y, z)")=`'z'`*)[¶](#ApiClient.TsReadAudio.SetUnit "Link to this definition")  
+Sets the unit of a certain axis of the accessed test quantity.
+
+Parameters:  unit : str[¶](#ApiClient.TsReadAudio.SetUnit.unit "Permalink to this definition")  
+Unit for axis
+
+axis : str[¶](#ApiClient.TsReadAudio.SetUnit.axis "Permalink to this definition")  
+Axis to set unit for (x, y, z)
+
+![](data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEzIDIwaC0yVjhsLTUuNSA1LjUtMS40Mi0xLjQyTDEyIDQuMTZsNy45MiA3LjkyLTEuNDIgMS40MkwxMyA4eiIgLz48L3N2Zz4=) Back to top

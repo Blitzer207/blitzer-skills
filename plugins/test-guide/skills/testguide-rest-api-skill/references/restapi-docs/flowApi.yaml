@@ -1,0 +1,1573 @@
+openapi: 3.0.2
+info:
+  title: |
+    test.guide workflow automation API
+  description: |
+    API for accessing workflow automation functionality of test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 0.13.3
+servers:
+  - url: /api/flow
+    description: this test.guide server
+  - url: /{context-path}/api/flow
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api/flow'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+paths:
+  /triggers:
+    get:
+      tags:
+        - flow trigger
+      summary: Get all flow triggers.
+      operationId: get-flow-triggers
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/eventType'
+      responses:
+        '200':
+          description: List of all flow triggers in the given project.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FlowTrigger'
+        default:
+          $ref: '#/components/responses/GeneralError'
+    post:
+      tags:
+        - flow trigger
+      summary: Create a flow trigger.
+      operationId: create-flow-trigger
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        description: Flow trigger to be created.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlowTrigger'
+      responses:
+        '201':
+          description: |
+            Flow trigger successfully created.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/CreatedFlowResponse'
+        '400':
+          description: The flow trigger provided is invalid.
+        '402':
+          description: Limit of active flow triggers in free edition violated.
+        default:
+          $ref: '#/components/responses/GeneralError'
+  /triggers/{triggerId}:
+    get:
+      tags:
+        - flow trigger
+      summary: Get a flow trigger.
+      operationId: get-flow-trigger
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/triggerId'
+      responses:
+        '200':
+          description: Flow trigger for this ID.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/FlowTrigger'
+        '404':
+          description: No trigger was found for this ID.
+        default:
+          $ref: '#/components/responses/GeneralError'
+    delete:
+      tags:
+        - flow trigger
+      summary: Delete a flow trigger by id.
+      operationId: delete-flow-trigger
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/triggerId'
+      responses:
+        '204':
+          description: The trigger was successfully deleted.
+        '404':
+          description: No trigger was found for this ID.
+        default:
+          $ref: '#/components/responses/GeneralError'
+    patch:
+      tags:
+        - flow trigger
+      summary: Update a flow trigger by id.
+      operationId: update-flow-trigger
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/triggerId'
+      requestBody:
+        description: Flow Trigger update description.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlowTriggerPatch'
+      responses:
+        '204':
+          description: The trigger was successfully updated.
+        '400':
+          description: The trigger could not be updated with the provided properties.
+        '402':
+          description: Limit of active flow triggers in free edition violated.
+        '404':
+          description: No trigger was found for this ID.
+        default:
+          $ref: '#/components/responses/GeneralError'
+  /triggers/{triggerId}/start:
+    post:
+      tags:
+        - flow trigger
+      summary: Start an EXTERNAL_EVENT flow trigger. (Only supported for that event type!)
+      operationId: start-flow-trigger
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/triggerId'
+      requestBody:
+        description: Payload for this event. Only trigger payloads with a size of up to 56000 characters are supported. Larger payloads might not be processed correctly.
+        required: true
+        content:
+          '*/*':
+            schema:
+              $ref: '#/components/schemas/ExternalEventPayloadData'
+      responses:
+        '201':
+          description: The trigger successfully created a task for the event.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/CreatedFlowTaskResponse'
+        '400':
+          description: The trigger could not create a task for the event.
+        '404':
+          description: No trigger was found for this ID.
+        '409':
+          description: The trigger is deactivated.
+        default:
+          $ref: '#/components/responses/GeneralError'
+  /tasks/{taskId}:
+    get:
+      tags:
+        - flow task
+      summary: Get a flow task by id.
+      operationId: get-flow-task
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/taskId'
+      responses:
+        '200':
+          description: Flow task for this ID.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/FlowTask'
+        '404':
+          description: No task was found for this ID.
+        default:
+          $ref: '#/components/responses/GeneralError'
+  /tasks/filter:
+    post:
+      tags:
+        - flow task
+      summary: Get flow tasks by filter.
+      operationId: filter-flow-tasks
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      requestBody:
+        description: Filter for flow tasks.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlowTaskFilter'
+      responses:
+        '200':
+          description: List of flow tasks matching the filter.
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/FlowTaskFilterResponse'
+        default:
+          $ref: '#/components/responses/GeneralError'
+components:
+  parameters:
+    projectId:
+      name: projectId
+      in: query
+      description: ID of the test.guide project
+      required: true
+      schema:
+        type: integer
+    triggerId:
+      name: triggerId
+      description: ID of the flow trigger
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/FlowTriggerId'
+    taskId:
+      name: taskId
+      description: ID of the flow task
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/FlowTaskId'
+    eventType:
+      in: query
+      name: eventType
+      required: false
+      schema:
+        $ref: '#/components/schemas/EventType'
+      description: Event type of the requested webhook
+    offset:
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        default: 0
+      description: First element to return
+    limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        default: 25
+        maximum: 1000
+      description: Maximum number of elements to return (maximum is 1000)
+  schemas:
+    FlowTrigger:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/FlowTriggerId'
+        name:
+          type: string
+          nullable: false
+          maxLength: 255
+          minLength: 1
+        flowSource:
+          $ref: '#/components/schemas/FlowSource'
+          nullable: false
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        executionUserAuthKey:
+          type: string
+          format: password
+          writeOnly: true
+          nullable: false
+        executionUser:
+          type: integer
+          format: int64
+          readOnly: true
+          nullable: true
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: false
+        description:
+          type: string
+          nullable: false
+          maxLength: 1024
+        failedExecutionThreshold:
+          $ref: '#/components/schemas/FailedExecutionThreshold'
+          default: 3
+        active:
+          type: boolean
+          nullable: false
+          default: true
+        taskRetentionDays:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 0
+          description: Number of days before completed tasks are automatically deleted. Leave empty to disable automatic deletion.
+        parameters:
+          $ref: '#/components/schemas/FlowTriggerParameterArray'
+        environmentVariables:
+          $ref: '#/components/schemas/EnvironmentVariableArray'
+        appointmentEventFilterData:
+          $ref: '#/components/schemas/AppointmentEventFilterData'
+        artifactUploadedEventFilterData:
+          $ref: '#/components/schemas/ArtifactUploadedEventFilterData'
+        executionTaskStateChangedEventFilterData:
+          $ref: '#/components/schemas/ExecutionTaskStateChangedEventFilterData'
+        exportPdfEventFilterData:
+          $ref: '#/components/schemas/ExportPdfEventFilterData'
+        qGateStateChangedEventFilterData:
+          $ref: '#/components/schemas/QGateStateChangedEventFilterData'
+        releaseStateChangedEventFilterData:
+          $ref: '#/components/schemas/ReleaseStateChangedEventFilterData'
+        reportUploadedEventFilterData:
+          $ref: '#/components/schemas/ReportUploadedEventFilterData'
+        reviewCreatedEventFilterData:
+          $ref: '#/components/schemas/ReviewCreatedEventFilterData'
+        cronDefinition:
+          $ref: '#/components/schemas/TimeControlledCronDefinition'
+        playbookRunCompletedEventFilterData:
+          $ref: '#/components/schemas/PlaybookRunCompletedEventFilterData'
+      required:
+        - name
+        - flowSource
+        - eventType
+        - executionUserAuthKey
+        - priority
+    FlowTriggerPatch:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: false
+          maxLength: 255
+          minLength: 1
+        flowSource:
+          $ref: '#/components/schemas/FlowSource'
+          nullable: false
+        executionUserAuthKey:
+          type: string
+          format: password
+          nullable: false
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+        description:
+          type: string
+          maxLength: 1024
+        failedExecutionThreshold:
+          $ref: '#/components/schemas/FailedExecutionThreshold'
+        taskRetentionDays:
+          type: integer
+          format: int64
+          default: null
+          minimum: -1
+          description: Number of days before completed tasks are automatically deleted. To disable automatic deletion, use negative values.
+        active:
+          type: boolean
+        parameters:
+          $ref: '#/components/schemas/FlowTriggerParameterArray'
+        environmentVariables:
+          $ref: '#/components/schemas/EnvironmentVariableArray'
+        appointmentEventFilterData:
+          $ref: '#/components/schemas/AppointmentEventFilterData'
+        artifactUploadedEventFilterData:
+          $ref: '#/components/schemas/ArtifactUploadedEventFilterData'
+        executionTaskStateChangedEventFilterData:
+          $ref: '#/components/schemas/ExecutionTaskStateChangedEventFilterData'
+        exportPdfEventFilterData:
+          $ref: '#/components/schemas/ExportPdfEventFilterData'
+        playbookRunCompletedEventFilterData:
+          $ref: '#/components/schemas/PlaybookRunCompletedEventFilterData'
+        qGateStateChangedEventFilterData:
+          $ref: '#/components/schemas/QGateStateChangedEventFilterData'
+        releaseStateChangedEventFilterData:
+          $ref: '#/components/schemas/ReleaseStateChangedEventFilterData'
+        reportUploadedEventFilterData:
+          $ref: '#/components/schemas/ReportUploadedEventFilterData'
+        reviewCreatedEventFilterData:
+          $ref: '#/components/schemas/ReviewCreatedEventFilterData'
+        cronDefinition:
+          $ref: '#/components/schemas/TimeControlledCronDefinition'
+    AppointmentEventFilterData:
+        type: object
+        properties:
+          appointmentCategoryId:
+            description: List of appointment categories to filter
+            type: array
+            items:
+              type: string
+              format: uuid
+              nullable: false
+              minLength: 1
+              maxLength: 36
+              example: 'b239fa2c-e892-4299-8aa6-40d612887b27'
+          testResourceId:
+            description: List of test resources to filter
+            type: array
+            items:
+              type: string
+              format: uuid
+              nullable: false
+              minLength: 1
+              maxLength: 36
+              example: 'b239fa2c-e892-4299-8aa6-40d612887b27'
+          appointmentEventType:
+            description: Type of appointment events to filter
+            type: array
+            items:
+              type: string
+              enum:
+                - CREATED
+                - UPDATED
+                - DELETED
+                - STARTED
+                - ENDED
+              example: 'CREATED'
+    ArtifactUploadedEventFilterData:
+      type: object
+      properties:
+        attributes:
+          description: Attribute values to filter (wildcards can be used in values)
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                nullable: false
+                minLength: 1
+                maxLength: 127
+                example: 'key'
+              values:
+                type: array
+                items:
+                  type: string
+                  nullable: false
+                  maxLength: 4095
+                  example: 'value'
+            required:
+              - key
+              - values
+        depository:
+          description: List of depositories to filter
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 3
+            maxLength: 15
+            pattern: '^[a-zA-Z0-9]{3,15}$'
+            example: 'myDepo'
+        fileExtension:
+          description: List of file extensions to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 255
+            example: 'zip'
+        fileName:
+          description: List of file names to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 255
+            example: 'myArtifact'
+    ExecutionTaskStateChangedEventFilterData:
+      type: object
+      properties:
+        attributes:
+          description: Attribute values to filter (wildcards can be used in values)
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                nullable: false
+                minLength: 1
+                maxLength: 255
+                example: 'key'
+              values:
+                type: array
+                items:
+                  type: string
+                  nullable: false
+                  maxLength: 4095
+                  example: 'value'
+            required:
+              - key
+              - values
+        name:
+          description: Names of execution task to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 255
+            example: 'executionTaskName'
+        newState:
+          description: New states of execution tasks to filter
+          type: array
+          items:
+            type: string
+            enum:
+              - FINISHED
+              - ERROR
+              - RUNNING
+              - WAITING
+              - BLOCKED
+            example: 'FINISHED'
+    ExportPdfEventFilterData:
+      type: object
+      properties:
+        reportDesignConfig:
+          description: Report design configs to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 64
+            example: 'reportdesign'
+        parameters:
+          description: Parameter values to filter (wildcards can be used in values)
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+                nullable: false
+                minLength: 1
+                maxLength: 4095
+                example: 'key'
+              values:
+                type: array
+                items:
+                  type: string
+                  nullable: false
+                  maxLength: 4095
+                  example: 'value'
+            required:
+              - key
+              - values
+    PlaybookRunCompletedEventFilterData:
+      type: object
+      properties:
+        playbookHistoryIds:
+          description: IDs of playbook histories to filter
+          type: array
+          items:
+            type: integer
+            nullable: false
+            format: int64
+            example: 1508
+        playbookNames:
+          description: Names of playbooks to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 255
+            example: 'Playbook name'
+    QGateStateChangedEventFilterData:
+      type: object
+      properties:
+        qGateName:
+          description: Names of Q-gates to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 128
+            example: 'Q-gate name'
+        qGatePlanKey:
+          description: Plan key of Q-gates to filter (wildcards can be used)
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 16
+            pattern: '^([a-zA-Z]+-\d+)$'
+            example: plan-42
+        newState:
+          description: New states of Q-gates to filter
+          type: array
+          items:
+            type: string
+            enum:
+              - UNDEFINED
+              - STOPPED
+              - PASSED
+              - IN_PROGRESS
+            example: 'PASSED'
+    ReleaseStateChangedEventFilterData:
+      type: object
+      properties:
+        releaseId:
+          description: Id of releases to filter
+          type: array
+          items:
+            type: integer
+            format: int64
+            example: 1508
+        newState:
+          description: New states of releases to filter
+          type: array
+          items:
+            type: string
+            enum:
+              - DELETED
+              - CREATED
+              - LOCKED
+              - UNLOCKED
+              - FULLY_COVERED
+            example: 'LOCKED'
+        releaseDType:
+          description: DType of the release
+          type: array
+          items:
+            type: string
+            enum:
+              - RELEASE
+              - RELEASEFOLDER
+            example: 'RELEASE'
+    ReportUploadedEventFilterData:
+      type: object
+      properties:
+        projectFilterId:
+          description: Id of the project filter
+          type: integer
+          nullable: false
+          format: int64
+          minimum: 0
+          example: 1508
+    ReviewCreatedEventFilterData:
+      type: object
+      properties:
+        projectFilterId:
+          description: Id of the project filter
+          type: integer
+          nullable: false
+          format: int64
+          minimum: 0
+          example: 1508
+        reevaluation:
+          description: |
+            The reevaluation of the review.
+          type: array
+          items:
+            type: string
+            nullable: false
+            enum:
+              - NONE
+              - PASSED
+              - INCONCLUSIVE
+              - FAILED
+              - ERROR
+            example: 'PASSED'
+        reviewTag:
+          description: |
+            Name of review tags to filter event with.
+          type: array
+          items:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 64
+            example: 'MyTag'
+    TimeControlledCronDefinition:
+      type: object
+      description: "Cron definition, required for triggers with event type TIME_CONTROLLED"
+      properties:
+        expression:
+          description: Cron expression
+          type: string
+          nullable: false
+          example: '0 * * * *'
+          maxLength: 1024
+          minLength: 9
+        timezone:
+          description: |
+            Timezone identifier for the cron event 
+            
+            Possible time zone IDs can be:
+            * time zone abbreviations such as 'CET' (Central European Time)
+            * time zone abbreviations with time shift such as 'UTC+2', 'UTC+02' or 'UTC+02:00'
+            * region-based time zone IDs such as 'Europe/Berlin'
+          type: string
+          nullable: false
+          example: 'UTC'
+      required:
+        - expression
+        - timezone
+    FlowTriggerId:
+      type: integer
+      format: int64
+      description: Identifier
+      example: 1
+      readOnly: true
+    FlowTaskId:
+      type: integer
+      format: int64
+      description: Identifier of a FlowTask
+      example: 1
+      readOnly: true
+    ArtifactId:
+      type: string
+      pattern: ^[a-zA-Z0-9]{3,15}-[1-9]\d*$
+      maxLength: 255
+      description: Artifact with the workflow bundle.
+      example: "depository1-12345"
+    EventType:
+      type: string
+      enum:
+        - ARTIFACT_UPLOAD
+        - EXECUTION_TASK_STATE_CHANGE
+        - EXPORT_PDF
+        - EXPORT_TESTCASES_WITH_FLOW_TRIGGER
+        - EXTERNAL_EVENT
+        - PLAYBOOK_RUN_COMPLETED
+        - Q_GATE_STATE_CHANGED
+        - RELEASE_STATE_CHANGE
+        - REPORT_UPLOAD
+        - REVIEW_CREATED
+        - TIME_CONTROLLED
+        - TEST_RESOURCE_MACHINE_WENT_OFFLINE
+        - WORKFLOW_GATE
+        - APPOINTMENT_EVENT
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+    CreatedFlowResponse:
+      type: object
+      properties:
+        flowTriggerId:
+          $ref: '#/components/schemas/FlowTriggerId'
+    CreatedFlowTaskResponse:
+      type: object
+      properties:
+        flowTaskId:
+          $ref: '#/components/schemas/FlowTaskId'
+    FailedExecutionThreshold:
+      description: Threshold for failed consecutive executions before FAULTY flag is set on flow trigger.
+      type: integer
+      minimum: -1
+      maximum: 2147483646
+      nullable: false
+    FlowTriggerParameterArray:
+      type: array
+      nullable: true
+      description: Optional parameters for flow triggers with event type EXPORT_TESTCASES_WITH_FLOW_TRIGGER. Defines parameters which can be set when a flow task is created for this trigger.
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 255
+            description: Name of the flow trigger parameter.
+          defaultValue:
+            type: string
+            default: ""
+            nullable: false
+            maxLength: 1024
+            description: Default value of the flow trigger parameter, which is preselected in the dialog to enter a parameter value.
+        required:
+          - name
+    EnvironmentVariableArray:
+      type: array
+      default: []
+      description: Optional environment variables to be set for the execution of flow tasks for this trigger.
+      items:
+        type: object
+        properties:
+          key:
+            type: string
+            nullable: false
+            minLength: 1
+            maxLength: 255
+            description: Key of the flow environment variable.
+          defaultValue:
+            type: string
+            format: password
+            writeOnly: true
+            default: ""
+            nullable: false
+            maxLength: 1024
+            description: Default value of the environment variable.
+          description:
+            type: string
+            nullable: false
+            maxLength: 1024
+            default: ""
+            description: Description of the environment variable.
+        required:
+          - name
+
+    TimeTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - TIME_CONTROLLED
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        last:
+          type: integer
+          format: int64
+          nullable: true
+          description: Time when the last task for this trigger was started.
+        lastState:
+          type: string
+          nullable: true
+          enum:
+            - FINISHED
+            - ABORTED
+            - SKIPPED
+            - RETAINED
+            - WAITING
+            - RUNNING
+          description: Result state of the last task for this trigger.
+        lastSuccess:
+          type: integer
+          format: int64
+          nullable: true
+          description: Time when the last successful task for this trigger was started. (FINISHED or SKIPPED)
+        next:
+          type: integer
+          format: int64
+          nullable: false
+          description: Time at which the next task for this trigger is to be created. (The task starts later, depending on how long it has to wait for the executing resource).
+      required:
+        - eventType
+        - last
+        - lastState
+        - lastSuccess
+        - timestamp
+        - next
+    TestResourceMachineWentOfflineEventPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - TEST_RESOURCE_MACHINE_WENT_OFFLINE
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        trmId:
+          type: string
+          format: uuid
+          nullable: false
+          description: ID of the test resource machine that went offline.
+          example: 9239fa2c-e692-4299-8aa6-40d612887b27
+      required:
+        - eventType
+        - trmId
+        - timestamp
+    ExternalEventPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - EXTERNAL_EVENT
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        data:
+          $ref: '#/components/schemas/ExternalEventPayloadData'
+        userId:
+          type: integer
+          nullable: false
+          format: int64
+          description: ID of the test.guide user who triggered this task.
+      required:
+        - eventType
+        - data
+        - userId
+        - timestamp
+    ExportTestcasesWithFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - EXPORT_TESTCASES_WITH_FLOW_TRIGGER
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        testCaseIds:
+          type: array
+          description: Array of test case executions IDs of the report filter
+          items:
+            type: integer
+            format: int64
+        userName:
+          type: string
+          nullable: false
+          description: Name of the user who triggered the export
+        parameters:
+          nullable: false
+          $ref: '#/components/schemas/FlowTriggerParameterMap'
+      required:
+        - eventType
+        - testCaseIds
+        - timestamp
+        - userName
+    FlowTriggerParameterMap:
+      type: object
+      description: Custom parameters for the export
+      additionalProperties:
+        type: string
+
+    ArtifactUploadedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - ARTIFACT_UPLOAD
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        artifactId:
+          $ref: '#/components/schemas/ArtifactId'
+      required:
+        - artifactId
+        - eventType
+        - timestamp
+    AtxReportUploadedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - REPORT_UPLOAD
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        atxId:
+          type: integer
+          format: int64
+          description: ID of the ATX report uploaded
+          example: 42
+      required:
+        - atxId
+        - eventType
+        - timestamp
+    ExecutionTaskStateChangedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - EXECUTION_TASK_STATE_CHANGE
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        taskId:
+          type: integer
+          format: int64
+          description: ID of the task that has changed
+          example: 42
+        newState:
+          $ref: '#/components/schemas/ExecutionTaskState'
+      required:
+        - eventType
+        - newState
+        - taskId
+        - timestamp
+    PlaybookRunCompletedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - PLAYBOOK_RUN_COMPLETED
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        playbookHistoryId:
+          type: integer
+          format: int64
+          description: ID of the playbook history
+          example: 42
+        playbookRunId:
+          type: integer
+          format: int64
+          description: ID of the playbook run
+          example: 1234
+        taskStates:
+          type: array
+          description: List of execution task IDs to their final states
+          items:
+            $ref: '#/components/schemas/PlaybookRunCompletedTaskState'
+      required:
+        - eventType
+        - playbookHistoryId
+        - playbookRunId
+        - taskStates
+        - timestamp
+    PlaybookRunCompletedTaskState:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+          description: ID of the execution task
+          example: 1234
+        finalState:
+          type: string
+          description: Final state of the execution task
+          example: FINISHED
+      required:
+        - taskId
+        - finalState
+
+    ExportPdfFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - EXPORT_PDF
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        originUrl:
+          type: string
+          format: uri
+        reportDesignConfig:
+          type: string
+        parameters:
+          type: object
+        taskId:
+          type: string
+        downloadUrl:
+          type: string
+          format: uri
+      required:
+        - eventType
+        - timestamp
+    QGateStateChangedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - Q_GATE_STATE_CHANGED
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        qGatePlanKey:
+          type: string
+          description: key of the Q-gate plan to which the changed Q-gate belongs
+          example: HOMOLOGATION-42
+        qGateName:
+          type: string
+          description: name of the changed Q-gate
+          example: Safety test
+        newState:
+          $ref: '#/components/schemas/QGateState'
+          description: the new state of the changed Q-gate
+      required:
+        - eventType
+        - qGatePlanKey
+        - qGateName
+        - newState
+        - timestamp
+    WorkflowGateFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - WORKFLOW_GATE
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        qGatePlanKey:
+          type: string
+          description: key of the Q-gate plan to which the changed Q-gate belongs
+          example: HOMOLOGATION-42
+        qGateName:
+          type: string
+          description: name of the changed Q-gate
+          example: Safety test
+      required:
+        - eventType
+        - qGatePlanKey
+        - qGateName
+        - timestamp
+    ReleaseStateChangedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - RELEASE_STATE_CHANGE
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        releaseId:
+          type: integer
+          format: int64
+          description: ID of the release that has changed
+          example: 42
+        newState:
+          $ref: '#/components/schemas/ReleaseState'
+        releaseDType:
+          $ref: '#/components/schemas/ReleaseDType'
+        name:
+          type: string
+        pathSegments:
+          type: array
+          items:
+            type: string
+          description: |
+            The names of all ancestor release folders (if existing) and the name of the changed release component.
+      required:
+        - eventType
+        - releaseId
+        - newState
+        - releaseDType
+        - name
+        - pathSegments
+        - timestamp
+    ReviewCreatedFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - REVIEW_CREATED
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        tceId:
+          type: integer
+          format: int64
+          description: ID of the test case execution a review is created for
+          example: 1234
+        reviewId:
+          type: integer
+          format: int64
+          description: ID of the review created
+          example: 42
+      required:
+        - eventType
+        - tceId
+        - reviewId
+        - timestamp
+    AppointmentEventFlowTriggerPayload:
+      type: object
+      properties:
+        eventType:
+          type: string
+          nullable: false
+          enum:
+            - APPOINTMENT_EVENT
+        timestamp:
+          $ref: '#/components/schemas/PayloadTimestamp'
+        appointmentId:
+          type: string
+          format: uuid
+          nullable: false
+          description: ID of the appointment
+          example: c239fa2c-e892-4299-8aa6-40d612887b27
+        appointmentEventType:
+          type: string
+          nullable: false
+          description: Type of the appointment event
+          enum:
+            - CREATED
+            - UPDATED
+            - DELETED
+            - STARTED
+            - ENDED
+        testResourceId:
+          type: string
+          format: uuid
+          nullable: false
+          description: ID of the test resource
+          example: a239fa2c-e892-4299-8aa6-40d612887b27
+        appointmentCategoryId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the appointment category
+          example: b32704ba-d3d1-1356-4ac6-7df254752e97
+        startTimestamp:
+          type: integer
+          format: int64
+          nullable: false
+          description: Time at which the appointment starts.
+        endTimestamp:
+          type: integer
+          format: int64
+          nullable: false
+          description: Time at which the appointment ends.
+      required:
+        - eventType
+        - appointmentId
+        - appointmentEventType
+        - testResourceId
+        - timestamp
+        - startTimestamp
+        - endTimestamp
+    QGateState:
+      type: string
+      description: |
+        States that a Q-gate can assume, can be one of:
+         * "UNDEFINED" - the Q-gate is not yet determined, initial state
+         * "STOPPED" - the Q-gate has failed
+         * "PASSED" - the Q-gate was passed successfully
+         * "IN_PROGRESS" - the Q-gates preconditions are met, actions related to the Q-gate may start
+      enum:
+        - UNDEFINED
+        - STOPPED
+        - PASSED
+        - IN_PROGRESS
+    ReleaseState:
+      type: string
+      description: |
+        Types of the release state change, can be one of:
+         * "CREATED" - the release was created
+         * "DELETED" - the release was deleted
+         * "LOCKED" - the release was locked
+         * "UNLOCKED" - the release was unlocked
+         * "FULLY_COVERED" - the release is 100 per cent covered (there will be no event if the release is no longer fully covered)
+      enum:
+        - CREATED
+        - DELETED
+        - LOCKED
+        - UNLOCKED
+        - FULLY_COVERED
+    ReleaseDType:
+      type: string
+      description: |
+        Type of a release:
+         * "RELEASE" - a release was changed
+         * "RELEASEFOLDER" - a release folder was changed
+      enum:
+        - RELEASE
+        - RELEASEFOLDER
+    ExternalEventPayloadData:
+      type: string
+      nullable: false
+      example: Any textual value like JSON, XML, plain text or others. Only trigger payloads with a size of up to 56000 characters are supported. Larger payloads might not be processed correctly.
+    PayloadTimestamp:
+      type: integer
+      format: int64
+      nullable: false
+      description: Time at which this task was created. (The task starts later, depending on how long it has to wait for the executing resource).
+    ExecutionTaskState:
+      type: string
+      description: Possible states of an execution task
+      enum:
+        - DELETED
+        - BLOCKED
+        - WAITING
+        - RUNNING
+        - FINISHED
+        - ERROR
+    FlowSource:
+      type: object
+      properties:
+        sourceType:
+          type: string
+          enum:
+            - ARTIFACT
+            - SCM
+        relativeFlowPath:
+          type: string
+          maxLength: 255
+          example: 'subfolder/subsubfolder'
+      discriminator:
+        propertyName: sourceType
+        mapping:
+          SCM: '#/components/schemas/FlowSourceScm'
+          ARTIFACT: '#/components/schemas/FlowSourceArtifact'
+      required:
+        - sourceType
+
+    FlowSourceArtifact:
+      allOf:
+        - $ref: '#/components/schemas/FlowSource'
+        - type: object
+          properties:
+            artifactId:
+              $ref: '#/components/schemas/ArtifactId'
+              nullable: false
+          required:
+            - artifactId
+
+    FlowSourceScm:
+      allOf:
+        - $ref: '#/components/schemas/FlowSource'
+        - type: object
+          properties:
+            scmLabel:
+              $ref: '#/components/schemas/ScmLabel'
+            scmCommit:
+              $ref: '#/components/schemas/ScmCommit'
+            sparseCheckoutPath:
+              type: string
+              maxLength: 255
+              description: |
+                Optional path to a folder that should be checked out.
+                Use this if you do not want to checkout the whole SCM repository but only a specific subfolder.
+
+                Variables (`${VARIABLE}`) are expanded.
+
+                Only allowed for SVN repositories.
+              example: 'path/to/repo'
+            settings:
+              $ref: '#/components/schemas/ScmSettings'
+          required:
+            - scmLabel
+            - scmCommit
+
+    ScmLabel:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: |
+        Label of the SCM which is configured in test.guide.
+
+        **Exactly one of the properties "scmLabel" or "scmUrl" is required!**
+      example: 'MyGit'
+
+    ScmCommit:
+      type: string
+      maxLength: 255
+      description: |
+        Reference to a specific commit of the SCM (if not specified the latest commit on the default branch is used)
+
+        In Git this can be:
+        * a commit hash: `17a5e88542a201da943b331c8c4d41695843c319`
+        * an explicit reference to a tag or branch: `refs/tags/TAG_NAME` or `refs/heads/BRANCH_NAME`
+        * a tag name
+        * a branch name (the latest commit of the branch is used)
+
+        In SVN this can be:
+        * a commit number
+        * `HEAD` for the latest commit
+
+        Variables (`${VARIABLE}`) are expanded.
+      example: '17a5e88542a201da943b331c8c4d41695843c319'
+
+    ScmSettings:
+      type: object
+      description: |
+        SCM tool specific settings that will override the settings of the SCM tool in the project settings.
+
+        If this object is passed along a flow source, all settings of the SCM tool will be overridden.
+      properties:
+        checkoutStrategy:
+          type: string
+          enum:
+            - NOCLEAN
+            - CLEAN
+            - CLONE
+          default: CLEAN
+          description: Strategy for checkout of the source code
+        submoduleCheckoutStrategy:
+          description: |
+            The checkout strategy for submodules.
+
+            * NONE will not checkout submodules
+            * RECURSIVE will checkout all submodules recursively
+
+            This setting does only effect Git sources and dependencies.
+          type: string
+          enum:
+            - RECURSIVE
+            - NONE
+          default: RECURSIVE
+        useLfs:
+          type: boolean
+          description: |
+            If `true`, activate Git LFS support for this repository.
+
+            This setting does only effect Git sources and dependencies.
+          default: false
+        disableShallowClone:
+          type: boolean
+          description: |
+            If shallow clone is enabled, git will only fetch the latest/specified revision of a repository before 
+            checkout.
+            If shallow clone is disabled, the whole repositories history will be fetched and the specified 
+            reference will be checked out afterwards.
+
+            Default is shallow clone. 
+
+            ATTENTION: disabling shallow clone might result in much longer checkout durations.
+
+            This setting does only effect Git sources and dependencies.
+          default: false
+    FlowTaskFilterResponse:
+      type: object
+      description: Response for a flow task filter request.
+      properties:
+        flowTasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/FlowTask'
+    FlowTaskFilter:
+      type: object
+      description: Filter for retrieving flow tasks.
+      properties:
+        states:
+          type: array
+          default: [ ]
+          items:
+            $ref: '#/components/schemas/FlowTaskState'
+        names:
+          type: array
+          default: [ ]
+          items:
+            type: string
+            maxLength: 255
+        eventTypes:
+          type: array
+          default: [ ]
+          items:
+            $ref: '#/components/schemas/EventType'
+        triggerIds:
+          type: array
+          default: [ ]
+          items:
+            $ref: '#/components/schemas/FlowTriggerId'
+        creationDate:
+          $ref: '#/components/schemas/DateRangeFilter'
+    DateRangeFilter:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date-time
+          description: Start of the date range in RFC 3339 format (ISO 8601 compatible)
+          example: '2025-07-18T12:34:56.789Z'
+          nullable: true
+        to:
+          type: string
+          format: date-time
+          description: End of the date range in RFC 3339 format (ISO 8601 compatible)
+          example: '2025-07-28T12:34:56.789Z'
+          nullable: true
+      required:
+          - from
+          - to
+    FlowTaskState:
+      type: string
+      nullable: false
+      enum:
+        - RETAINED
+        - WAITING
+        - RUNNING
+        - FINISHED
+        - SKIPPED
+        - ABORTED
+    FlowTask:
+      type: object
+      description: A flow task that was created by a flow trigger.
+      properties:
+        id:
+          $ref: '#/components/schemas/FlowTaskId'
+        projectId:
+          type: integer
+          format: int64
+          nullable: false
+          description: ID of the test.guide project this task belongs to.
+        name:
+          type: string
+          maxLength: 255
+          nullable: false
+        triggerId:
+          $ref: '#/components/schemas/FlowTriggerId'
+        state:
+          $ref: '#/components/schemas/FlowTaskState'
+        eventType:
+          $ref: '#/components/schemas/EventType'
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: false
+        creationDate:
+          type: string
+          format: date-time
+          description: Time at which the task was created in RFC 3339 format (ISO 8601 compatible)
+          example: '2025-07-18T12:34:56.789Z'
+          nullable: false
+        startDate:
+          type: string
+          format: date-time
+          description: Time at which the task execution was started in RFC 3339 format (ISO 8601 compatible)
+          example: '2025-07-18T12:34:56.789Z'
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          description: Time at which the task execution was finished in RFC 3339 format (ISO 8601 compatible)
+          example: '2025-07-18T12:34:56.789Z'
+          nullable: true
+        testResourceMachineId:
+          type: string
+          format: uuid
+          description: ID of the test resource machine that is executing or executed this task.
+          example: 9239fa2c-e692-4299-8aa6-40d612887b27
+          nullable: true
+  responses:
+    GeneralError:
+      description: |
+        An error occurred.
+
+        For example following status codes can be sent:
+        * 400: The request is invalid.
+        * 401: The user is unauthorized. Please check your authentication key.
+        * 403: The user does not have the necessary rights to do this action.
+        * 500: An internal error occurred. You maybe found a bug.
+          You can report bugs to [support@tracetronic.com](mailto:support@tracetronic.com).
+        * 503: The server is starting or is down for maintenance.
+      content:
+        'application/json':
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

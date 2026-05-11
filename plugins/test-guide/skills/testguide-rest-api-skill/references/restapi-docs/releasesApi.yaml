@@ -1,0 +1,918 @@
+openapi: 3.0.2
+info:
+  title: test.guide Releases API
+  description: API for handling releases (sets of test case executions) in test.guide.
+  contact:
+    name: tracetronic support
+    email: support@tracetronic.com
+  license:
+    name: tracetronic license
+    url: https://www.tracetronic.com/software-license-terms/
+  version: 1.3.0
+servers:
+  - url: /api
+    description: this test.guide server
+  - url: /{context-path}/api
+    description: this test.guide server with a custom context path
+    variables:
+      context-path:
+        default: test-guide
+        description: context path to be used
+  - url: '{url}/api'
+    description: custom test.guide server
+    variables:
+      url:
+        default: https://localhost:8443
+security:
+  - TestGuideAuthKey: [ ]
+  - BearerAuth: [ ]
+x-empty-top-level-path: true
+paths:
+  /releases:
+    post:
+      summary: Create a new release
+      operationId: create-release
+      tags:
+        - releases
+      parameters:
+        - $ref: "#/components/parameters/projectId"
+      requestBody:
+        description: The data of the release that shall be created.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/ReleaseComponent'
+            example:
+              name: MyFirstSubRelease
+              attributes:
+                MyAttribute:
+                  - value1
+                  - value2
+              tickets:
+                - 'https://my-issuetracker.de/browse/TTSTM-1911'
+              releaseDate: '2019-04-30T18:00:00+02:00'
+              parentId: 123
+              dType: Release
+              coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+              startTime: '2019-04-17T11:44:00+02:00'
+      responses:
+        '201':
+          description: A new release was successfully created
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ReleaseIdResponse'
+        '400':
+          description: The release could not be created.
+        '500':
+          description: The release could not be created.
+
+    get:
+      tags:
+        - releases
+      deprecated: true
+      description: Deprecated, please use POST /releases/filter instead.
+      summary: Retrieve all releases of a project
+      operationId: retrieve-all-releases
+      parameters:
+        - $ref: '#/components/parameters/querySearchParameters'
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/dir'
+      responses:
+        '200':
+          description: Releases were successfully retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseComponent'
+                example:
+                  - releaseId: 125
+                    testCaseTagSetId: 134
+                    name: MyBasicRootRelease
+                    author: John Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes: { }
+                    tickets: [ ]
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 142
+                      totalElements: 175
+                    locked: false
+                    parentId: null
+                    path: [ 'MyBasicRootRelease' ]
+                    dType: ReleaseFolder
+                  - releaseId: 126
+                    testCaseTagSetId: 135
+                    name: MyFirstSubRelease
+                    author: John Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes:
+                      MyAttribute:
+                        - value1
+                        - value2
+                    tickets:
+                      - 'https://my-issuetracker.de/browse/TTSTM-1911'
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 15
+                      totalElements: 43
+                    locked: true
+                    lockDate: '2019-04-28T18:00:00+02:00'
+                    parentId: 125
+                    path: [ 'MyBasicRootRelease', 'MyFirstSubRelease' ]
+                    dType: Release
+                    startTime: '2019-04-17T11:44:00+02:00'
+                    coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+        '204':
+          description: No releases exist for the parameters supplied.
+  /releases/filter:
+    post:
+      tags:
+        - releases
+      summary: Retrieve filtered releases in a project
+      operationId: filter-releases
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/dir'
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/FilterReleasesParameters'
+      responses:
+        '200':
+          description: Releases were successfully retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseComponent'
+                example:
+                  - releaseId: 125
+                    testCaseTagSetId: 134
+                    name: MyBasicRootRelease
+                    author: John Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes: { }
+                    tickets: [ ]
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 142
+                      totalElements: 175
+                    locked: false
+                    parentId: null
+                    path: [ 'MyBasicRootRelease' ]
+                    dType: ReleaseFolder
+                  - releaseId: 126
+                    testCaseTagSetId: 135
+                    name: MyFirstSubRelease
+                    author: John Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes:
+                      MyAttribute:
+                        - value1
+                        - value2
+                    tickets:
+                      - 'https://my-issuetracker.de/browse/TTSTM-1911'
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 15
+                      totalElements: 43
+                    locked: true
+                    lockDate: '2019-04-28T18:00:00+02:00'
+                    parentId: 125
+                    path: [ 'MyBasicRootRelease', 'MyFirstSubRelease' ]
+                    dType: Release
+                    startTime: '2019-04-17T11:44:00+02:00'
+                    coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+        '204':
+          description: No releases exist for the parameters supplied.
+  /releases/{releaseId}:
+    get:
+      tags:
+        - releases
+      summary: Retrieve a release or a release folder
+      operationId: retrieve-release
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      responses:
+        '200':
+          description: Release was successfully retrieved
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ReleaseComponent'
+              example:
+                releaseId: 126
+                testCaseTagSetId: 134
+                name: MyFirstSubRelease
+                author: John Doe
+                creationTime: '2019-04-01T07:30:00+02:00'
+                attributes:
+                  MyAttribute:
+                    - value1
+                    - value2
+                tickets:
+                  - 'https://my-issuetracker.de/browse/TTSTM-1911'
+                releaseDate: '2019-04-30T18:00:00+02:00'
+                coverageProgress:
+                  testedElements: 15
+                  totalElements: 43
+                locked: true
+                parentId: 125
+                path: [ 'MyBasicRootRelease', 'MyFirstSubRelease' ]
+                dType: Release
+                startTime: '2019-04-17T11:44:00+02:00'
+                coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+        '404':
+          description: There was no release found with the given id.
+    put:
+      tags:
+        - releases
+      summary: Update a release
+      operationId: update-release
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      requestBody:
+        description: To update an release is to do a GET, update the values and then PUT back.
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/ReleaseComponent'
+            example:
+              name: MyFirstSubRelease
+              attributes:
+                MyAttribute:
+                  - value1
+                  - value2
+              startTime: '2019-04-17T11:44:00+02:00'
+              tickets:
+                - 'https://my-issuetracker.de/browse/TTSTM-1911'
+              releaseDate: '2019-04-30T18:00:00+02:00'
+              parentId: 123
+              dType: Release
+      responses:
+        '200':
+          description: The release was successfully updated
+          content:
+            'application/json':
+              schema:
+                $ref: '#/components/schemas/ReleaseIdResponse'
+        '404':
+          description: There was no release found with the given id.
+    delete:
+      tags:
+        - releases
+      summary: Delete a release. If it's a folder all it's sub-releases are deleted recursively.
+      operationId: delete-release
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      responses:
+        '200':
+          description: The release was successfully deleted
+        '404':
+          description: There was no release found with the given id.
+  
+  /releases/{releaseId}/locked:
+    put:
+      tags:
+        - releases
+      summary: |
+        Changes the lock state of the given release or release folder. Locking an item will also lock all descendants,
+        while unlocking will also unlock all ancestors.
+      operationId: change-release-locked
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      requestBody:
+        description: If true, the given release or release folder will get locked, if false it will get unlocked.
+        required: true
+        content:
+          text/plain:
+            schema:
+              type: boolean
+      responses:
+        '200':
+          description: The lock state of the release was successfully changed.
+        '404':
+          description: There was no release found with the given id.
+
+  /releases/{releaseId}/children:
+    get:
+      tags:
+        - releases
+      summary: Retrieve a release's direct sub releases (child releases)
+      operationId: retrieve-sub-releases
+      deprecated: true
+      description: Deprecated, please use POST /releases/{releaseId}/filter instead.
+      parameters:
+        - $ref: '#/components/parameters/querySearchParameters'
+        - $ref: '#/components/parameters/releaseId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/dir'
+      responses:
+        '200':
+          description: Releases were successfully retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseComponent'
+                example:
+                  - releaseId: 126
+                    testCaseTagSetId: 134
+                    name: SubRelease1
+                    author: John Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes: { }
+                    tickets: [ ]
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 15
+                      totalElements: 43
+                    locked: false
+                    parentId: 125
+                    dType: Release
+                    startTime: '2019-04-17T11:44:00+02:00'
+                    coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+                  - releaseId: 127
+                    testCaseTagSetId: 135
+                    name: SubRelease2
+                    author: Jane Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes: { }
+                    tickets: [ ]
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 0
+                      totalElements: 42
+                    locked: true
+                    parentId: 125
+                    dType: Release
+                    startTime: '2019-04-17T11:44:00+02:00'
+                    coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+        '204':
+          description: No releases exist for the parameters supplied.
+  /releases/{releaseId}/filter:
+    post:
+      tags:
+        - releases
+      summary: Retrieve a release's direct sub releases (child releases)
+      operationId: filter-sub-releases
+      parameters:
+        - $ref: '#/components/parameters/releaseId'
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/sort'
+        - $ref: '#/components/parameters/dir'
+      requestBody:
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/FilterReleasesParameters'
+      responses:
+        '200':
+          description: Releases were successfully retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseComponent'
+                example:
+                  - releaseId: 126
+                    testCaseTagSetId: 134
+                    name: SubRelease1
+                    author: John Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes: { }
+                    tickets: [ ]
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 15
+                      totalElements: 43
+                    locked: false
+                    parentId: 125
+                    dType: Release
+                    startTime: '2019-04-17T11:44:00+02:00'
+                    coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+                  - releaseId: 127
+                    testCaseTagSetId: 135
+                    name: SubRelease2
+                    author: Jane Doe
+                    creationTime: '2019-04-01T07:30:00+02:00'
+                    attributes: { }
+                    tickets: [ ]
+                    releaseDate: '2019-04-30T18:00:00+02:00'
+                    coverageProgress:
+                      testedElements: 0
+                      totalElements: 42
+                    locked: true
+                    parentId: 125
+                    dType: Release
+                    startTime: '2019-04-17T11:44:00+02:00'
+                    coverageUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+  /releases/{releaseId}/content:
+    get:
+      tags:
+        - releases
+      summary: Retrieve content of a release
+      operationId: retrieve-release-content
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      responses:
+        '200':
+          description: Release content was successfully retrieved
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TestCaseExecution'
+                example:
+                  - { testCaseExecutionId: 1, verdict: PASSED, reviewVerdict: null, reviewExistent: false }
+                  - { testCaseExecutionId: 2, verdict: ERROR, reviewVerdict: PASSED, reviewExistent: true }
+        '204':
+          description: The release has no content.
+        '404':
+          description: There was no release found with the given id.
+    put:
+      tags:
+        - releases
+      summary: Update content of a release
+      operationId: update-release-content
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      requestBody:
+        description: An array consisting of the test case execution IDs to add to the release content.
+        required: true
+        content:
+          'application/json':
+            schema:
+              type: object
+              properties:
+                testCaseExecutionIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  example: [ 1, 2 ]
+              required:
+                - testCaseExecutionIds
+      responses:
+        '202':
+          description: The release content was successfully updated.
+        '404':
+          description: There was no release found with the given id.
+        '400':
+          description: The given id belongs to a release folder which does not allow to add test case executions.
+  /releases/{releaseId}/content/apply-coverage:
+    post:
+      tags:
+        - releases
+      summary: Apply release coverage
+      description: |
+        If a coverage filter is specified for the release, this will calculate the coverage for the release period
+        (defined by the start and release date of the release) and populate the release with the results.
+      operationId: add-release-content-by-applying-coverage
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      responses:
+        '200':
+          description: If existent, the release coverage was applied.
+  /releases/{releaseId}/coverage:
+    post:
+      tags:
+        - releases
+      summary: Assign a new coverage filter definition to the release
+      description: |
+        Uploads a new coverage filter definition to be assigned to a release. When a release is unlocked and has started, all
+        test case executions being uploaded to test.guide that match the coverage filter of a release are automatically
+        added to its release content.
+      operationId: post-coverage-to-release
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      requestBody:
+        description: |
+          The XML representation of the coverage filter definition.
+          Please ensure that the correct encoding is specified in the Content-Type HTTP header, e.g.
+          ```
+          Content-Type: application/xml;charset=ISO-8859-4
+          ```
+          To access the XML schema of a coverage filter definition, go to "Test case coverage" > "Filter definition" in test.guide
+        content:
+          application/xml:
+            schema:
+              type: string
+            example:
+              '<filterTreeV2><node><label>Requirements</label><leaf><label>Requirement 1</label></leaf><leaf><label>Requirement 2</label></leaf></node></filterTreeV2>'
+      responses:
+        '200':
+          description: The coverage config was added to the release
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageFilterDefinitionUUID"
+              example:
+                filterDefinitionUUID: '2c7f3654-e9c6-3536-8a37-493ab56a4e03'
+        '404':
+          description: A release with the given id was not found
+        '400':
+          description: The posted coverage filter definition is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoverageValidationError"
+
+    delete:
+      tags:
+        - releases
+      summary: Removes the coverage from a release if one exists
+      operationId: remove-coverage-from-release
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+      responses:
+        '204':
+          description: The coverage of the release was successfully deleted'
+        '404':
+          description: A release with the given id was not found
+
+  /releases/{releaseId}/changelog:
+    get:
+      tags:
+        - releases
+      summary: Retrieve changelog of a release
+      operationId: retrieve-release-changelog
+      parameters:
+        - $ref: "#/components/parameters/releaseId"
+        - $ref: '#/components/parameters/offset'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: The release changelog was successfully retrieved.
+          content:
+            'application/json':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChangelogEntry'
+        '204':
+          description: The release has no changelog.
+        '404':
+          description: There was no release found with the given id.
+
+components:
+  parameters:
+    querySearchParameters:
+      name: queryParameters
+      in: query
+      explode: true
+      style: form
+      schema:
+        $ref: '#/components/schemas/SearchParameters'
+    releaseId:
+      name: releaseId
+      description: ID of the release
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+    projectId:
+      name: projectId
+      in: query
+      description: ID of the test.guide project
+      required: true
+      schema:
+        type: integer
+    offset:
+      name: offset
+      in: query
+      description: The number of items to skip before starting to collect the result set.
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    limit:
+      name: limit
+      in: query
+      description: The number of items to return.
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+    sort:
+      name: sort
+      in: query
+      description: The parameter to sort the releases by.
+      required: false
+      schema:
+        $ref: '#/components/schemas/ReleaseSort'
+    dir:
+      name: dir
+      in: query
+      description: The sorting order.
+      required: false
+      schema:
+        $ref: '#/components/schemas/SortingDirection'
+
+
+  schemas:
+    Verdict:
+      type: string
+      enum: [ 'NONE', 'PASSED', 'INCONCLUSIVE', 'FAILED', 'ERROR' ]
+
+    ReleaseSort:
+      type: string
+      description: The parameter to sort the releases by.
+      enum: [ 'NAME', 'RELEASE_DATE', 'START_DATE', 'TEST_CASE_COUNT', 'TEST_CASE_EXECUTION_COUNT', 'TEST_SUITE_COUNT', 'ID' ]
+      default: 'NAME'
+
+    SortingDirection:
+      type: string
+      description: The sorting order.
+      enum: [ 'ASC', 'DESC' ]
+      default: 'ASC'
+
+    TestCaseExecution:
+      type: object
+      properties:
+        testCaseExecutionId:
+          type: integer
+          format: int64
+        verdict:
+          allOf:
+            - $ref: '#/components/schemas/Verdict'
+          readOnly: true
+        reviewVerdict:
+          allOf:
+            - $ref: '#/components/schemas/Verdict'
+          readOnly: true
+        reviewExistent:
+          description: true, if the test case execution has a review
+          type: boolean
+          readOnly: true
+      required:
+        - testCaseExecutionId
+
+    ReleaseIdResponse:
+      type: object
+      properties:
+        releaseId:
+          type: integer
+          format: int64
+
+    ReleaseComponent:
+      type: object
+      properties:
+        releaseId:
+          type: integer
+          format: int64
+          readOnly: true
+        testCaseTagSetId:
+          type: integer
+          format: int64
+          readOnly: true
+          description: To use the report filter or coverage filter to filter the content of a release, you have to submit the testCaseTagSetId of that release as filter parameter
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        author:
+          type: string
+          readOnly: true
+        creationTime:
+          type: string
+          format: date-time
+          description: Time when the release was created
+          readOnly: true
+        attributes:
+          type: object
+          description: An arbitrary key - values map that can be used to assign additional information to a release
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        tickets:
+          type: array
+          items:
+            type: string
+        startTime:
+          description: Time starting at which the release can be filled with test case executions
+          type: string
+          format: date-time
+        releaseDate:
+          type: string
+          format: date-time
+        coverageProgress:
+          $ref: "#/components/schemas/CoverageProgress"
+        locked:
+          type: boolean
+          description: if true, no more test case executions can be added to the release
+          readOnly: true
+        lockDate:
+          type: string
+          format: date-time
+          description: Date the release was locked
+          readOnly: true
+        parentId:
+          type: integer
+          format: int64
+          description: Id of the parent release
+        path:
+          type: array
+          items:
+            type: string
+          description: |
+            Path consisting of the names of all ancestor release folders (if existing) and the name of the changed release component.
+          readOnly: true
+        dType:
+          allOf:
+            - $ref: '#/components/schemas/ReleaseDType'
+      discriminator:
+        propertyName: dType
+      required:
+        - name
+        - releaseDate
+        - dType
+        - startTime
+
+    ReleaseDType:
+      type: string
+      enum: [ 'Release', 'ReleaseFolder' ]
+
+    Release:
+      allOf:
+        - $ref: '#/components/schemas/ReleaseComponent'
+        - type: object
+          properties:
+            coverageUUID:
+              type: string
+              description: |
+                UUID of the coverage filter definition assigned to this release. If a coverage filter definition is
+                assigned and the release is unlocked and started, all test case executions that will be uploaded to
+                test.guide and that match the coverage filter are automatically assigned to this release. Test case
+                executions already present in test.guide are not automatically added to the release when assigning a
+                coverage filter definition. The filter definition will be copied to the category "Release-Coverage-
+                Config" before being assigned to the release.
+
+    ReleaseFolder:
+      allOf:
+        - $ref: '#/components/schemas/ReleaseComponent'
+
+    CoverageValidationError:
+      type: object
+      properties:
+        validationErrorMessage:
+          type: string
+          description: The validation error message
+    
+    CoverageProgress:
+      type: object
+      properties:
+        testedElements:
+          type: integer
+          description: Number of coverage elements that have been tested
+        totalElements:
+          type: integer
+          description: Number of coverage elements that could be tested
+      required:
+        - testedElements
+        - totalElements
+      readOnly: true
+    
+    SearchParameters:
+      type: object
+      properties:
+        onlyRoot:
+          type: boolean
+          description: If true, only root releases will be retrieved.
+          default: false
+        name:
+          type: string
+          description: Pattern to search for the release name. Wildcards are allowed.
+          example: 'SOP_*_2020'
+        ticket:
+          type: string
+          description: Pattern to search for a ticket assigned to the release. Wildcards are allowed.
+        startDate:
+          type: string
+          format: date-time
+          description: Lower boundary for the release date ("oldest")
+        endDate:
+          type: string
+          format: date-time
+          description: Upper boundary for the release date ("newest")
+        state:
+          $ref: '#/components/schemas/ReleaseState'
+        attributes:
+          type: string
+          example: "key1=value1,value2|key2=value3"
+        parentId:
+          type: integer
+
+    FilterReleasesParameters:
+      type: object
+      properties:
+        onlyRoot:
+          type: boolean
+          description: If true, only root releases will be retrieved.
+          default: false
+        name:
+          type: string
+          description: Pattern to search for the release name. Wildcards are allowed.
+          example: 'SOP_*_2020'
+        ticket:
+          type: string
+          description: Pattern to search for a ticket assigned to the release. Wildcards are allowed.
+        startDateRangeFrom:
+          type: string
+          format: date-time
+          description: Lower boundary for the start date ("oldest")
+        startDateRangeTo:
+          type: string
+          format: date-time
+          description: Upper boundary for the start date ("newest")
+        releaseDateRangeFrom:
+          type: string
+          format: date-time
+          description: Lower boundary for the release date ("oldest")
+        releaseDateRangeTo:
+          type: string
+          format: date-time
+          description: Upper boundary for the release date ("newest")
+        state:
+          $ref: '#/components/schemas/ReleaseState'
+        attributes:
+          type: string
+          example: "key1=value1,value2|key2=value3"
+        parentId:
+          type: integer
+          format: int64
+          description: ID of the parent release
+
+    ReleaseState:
+      type: string
+      enum:
+        - 'LOCKED'
+        - 'UNLOCKED'
+      description: Release lock state
+
+    CoverageFilterDefinitionUUID:
+      type: object
+      readOnly: true
+      properties:
+        filterDefinitionUUID:
+          type: string
+          format: uuid
+          description: ID of the release coverage filter definition.
+
+    ChangelogEntry:
+      type: object
+      description: Information about the modification of a releases content.
+      properties:
+        date:
+          type: string
+          format: date-time
+        author:
+          type: string
+        processedTestRuns:
+          type: integer
+          format: int32
+          description: The count of test runs processed on this release change.
+        action:
+          $ref: '#/components/schemas/ChangeAction'
+
+    ChangeAction:
+      type: string
+      enum:
+        - 'ADDED'
+        - 'REMOVED'
+      description: Describes if the test runs were added or removed from the release
+
+  securitySchemes:
+    TestGuideAuthKey:
+      type: apiKey
+      name: 'TestGuide-AuthKey'
+      in: header
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
